@@ -1,7 +1,7 @@
 #include <filesystem>
 #include <obs-source.h>
 
-struct ReplaySourceContext {
+struct ReplaySource {
 	/*
     The source context data that is passed back and forth to OBS. As I understand it, each 
     function call (usually) passes this data in so that the functions themselves
@@ -36,58 +36,58 @@ struct ReplaySourceContext {
 
 // This is what OBS actually expects when loading a source. Constructed once and then never
 // touched by us again -- purely exists to pass the necessary functions/settings to OBS
-struct obs_source_info replay_source;
+struct obs_source_info replay_source_info;
 
 bool register_replay_source()
 {
-	replay_source.id = "replay-source";
-	replay_source.type = OBS_SOURCE_TYPE_INPUT;
-	replay_source.output_flags = OBS_SOURCE_VIDEO;
-	replay_source.get_name = replay_source_name;
-	replay_source.create = replay_source_create;
-	replay_source.destroy = replay_source_destroy;
-	replay_source.update = replay_source_update;
-	replay_source.video_render = replay_source_render;
-	replay_source.get_width = replay_source_width;
-	replay_source.get_height = replay_source_height;
+	replay_source_info.id = "replay-source";
+	replay_source_info.type = OBS_SOURCE_TYPE_INPUT;
+	replay_source_info.output_flags = OBS_SOURCE_VIDEO;
+	replay_source_info.get_name = replay_source_name;
+	replay_source_info.create = replay_source_create;
+	replay_source_info.destroy = replay_source_destroy;
+	replay_source_info.update = replay_source_update;
+	replay_source_info.video_render = replay_source_render;
+	replay_source_info.get_width = replay_source_width;
+	replay_source_info.get_height = replay_source_height;
 
-	obs_register_source(&replay_source);
+	obs_register_source(&replay_source_info);
 	return true;
 }
 
-const char *replay_source_name(void *unused)
+const static char *replay_source_name(void *unused)
 {
 	UNUSED_PARAMETER(unused);
 	return "Replay";
 };
 
 // TODO: fill the rest of these in
-void *replay_source_create(obs_data_t *settings, obs_source_t *source)
+static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 {
 	return;
 };
 
-void replay_source_destroy(void *data)
+static void replay_source_destroy(void *data)
 {
 	return;
 };
 
-void replay_source_update(void *data, obs_data_t *settings)
+static void replay_source_update(void *data, obs_data_t *settings)
 {
 	return;
 };
 
-void replay_source_render(void *data, gs_effect_t *effect)
+static void replay_source_render(void *data, gs_effect_t *effect)
 {
 	return;
 };
 
-uint32_t replay_source_width(void *data)
+static uint32_t replay_source_width(void *data)
 {
 	return;
 };
 
-uint32_t replay_source_height(void *data)
+static uint32_t replay_source_height(void *data)
 {
 	return;
 };

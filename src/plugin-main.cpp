@@ -17,6 +17,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 */
 
 #include <obs-module.h>
+#include <replay-source.h>
 #include <plugin-support.h>
 
 OBS_DECLARE_MODULE()
@@ -24,8 +25,11 @@ OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
 bool obs_module_load(void)
 {
-	obs_log(LOG_INFO, "plugin loaded successfully (version %s)", PLUGIN_VERSION);
-	return true;
+	bool load_success = register_replay_source();
+	if (load_success) {
+		obs_log(LOG_INFO, "plugin loaded successfully (version %s)", PLUGIN_VERSION);
+	}
+	return load_success;
 }
 
 void obs_module_unload(void)

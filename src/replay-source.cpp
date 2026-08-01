@@ -7,7 +7,7 @@ bool register_replay_source()
 	replay_source.id = "replay-source";
 	replay_source.type = OBS_SOURCE_TYPE_INPUT;
 	replay_source.output_flags = OBS_SOURCE_VIDEO;
-	replay_source.get_name = replay_source_get_name;
+	replay_source.get_name = replay_source_name;
 	replay_source.create = replay_source_create;
 	replay_source.destroy = replay_source_destroy;
 	replay_source.update = replay_source_update;
@@ -19,8 +19,9 @@ bool register_replay_source()
 	return true;
 }
 
-const char *replay_source_name(void *type_data)
+const char *replay_source_name(void *unused)
 {
+	UNUSED_PARAMETER(unused);
 	return "Replay";
 };
 

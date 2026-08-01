@@ -30,7 +30,7 @@ struct ReplaySource {
 	gs_texture_t *tex;
 
 	// the width and height of the source, don't load these until you actually know
-	// the dimensions of the video
+	// the dimensions of the video (return 0 initially)
 	uint32_t width, height;
 };
 

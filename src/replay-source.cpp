@@ -65,7 +65,7 @@ bool register_replay_source()
 const static char *replay_source_name(void *unused)
 {
 	UNUSED_PARAMETER(unused);
-	return "Replay";
+	return "Instant Replay";
 };
 
 // TODO: fill the rest of these in

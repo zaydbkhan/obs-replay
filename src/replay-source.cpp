@@ -17,28 +17,6 @@ struct ReplaySource {
 
 	// handle back to self
 	obs_source_t *source;
-
-	// placeholder, can use whatever method of loading the file you want
-	// as long as it gets mapped into memory
-	std::filesystem::path fpath;
-
-	// mmap information, not comprehensive (maybe want start/end/current instead)
-	void *mmap_base;
-	size_t mmap_len;
-
-	// demux/decode state (this is an example from claude but honestly idk what goes here yet)
-	AVIOContext *avio_ctx;
-	AVFormatContext *fmt_ctx;
-	AVCodecContext *codec_ctx;
-	SwsContext *sws_ctx;
-
-	// GPU resource -- used to manage frame rendering through OBS's graphics library
-	// for now I think we can render frames inline rather than in a separate thread/worker
-	gs_texture_t *tex;
-
-	// the width and height of the source, don't load these until you actually know
-	// the dimensions of the video (return 0 initially)
-	uint32_t width, height;
 };
 
 // This is what OBS actually expects when loading a source. Constructed once and then never
@@ -69,9 +47,26 @@ const static char *replay_source_name(void *unused)
 };
 
 // TODO: fill the rest of these in
+
+// https://github.com/leandromoreira/ffmpeg-libav-tutorial
 static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 {
-	return;
+	auto *replay_source = new ReplaySource();
+	replay_source->source = source;
+
+	// allocate format context, open file & get stream info
+	AVFormatContext *fmt_ctx = avformat_alloc_context();
+	avformat_open_input(&fmt_ctx, "/home/zayd/Dev/obs-replay/test_files/poc.mkv", NULL,
+			    NULL); // replace w/ your path, idk i'm just hardcoding it for now
+	avformat_find_stream_info(fmt_ctx, NULL);
+
+	AVCodec *pCodec = NULL;
+	// this component describes the properties of a codec used by the stream i
+	// https://ffmpeg.org/doxygen/trunk/structAVCodecParameters.html
+	AVCodecParameters *pCodecParameters = NULL;
+	int video_stream_index = -1;
+
+	return replay_source;
 };
 
 static void replay_source_destroy(void *data)

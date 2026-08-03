@@ -1,5 +1,8 @@
 #include <filesystem>
 #include <obs-source.h>
+#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libswscale/swscale.h>
 
 struct ReplaySource {
 	/*
@@ -64,7 +67,28 @@ const static char *replay_source_name(void *unused)
 // TODO: fill the rest of these in
 static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 {
-	return;
+
+    ReplaySource* replay_source = static_cast<ReplaySource*>(bzalloc(sizeof(ReplaySource)));
+    replay_source->fmt_ctx = avformat_alloc_context();
+
+    replay_source->width = 0;
+    replay_source->height = 0;
+
+
+
+    avformat_open_input(&(replay_source->fmt_ctx), "/Users/isaackhabra/Documents/Programming/projects/obs_replay/test/small_bunny_1080p_60fps.mp4", NULL, NULL);
+    avformat_find_stream_info(replay_source->fmt_ctx, NULL);
+
+    for(int i = 0; i < replay_source->fmt_ctx->nb_streams; i++) {
+        AVCodecParameters *pCodecParam = replay_source->fmt_ctx->streams[i]->codecpar;
+        
+        if (pCodecParam->codec_type == AVMEDIA_TYPE_VIDEO) {
+            replay_source->width    = pCodecParam->width; 
+            replay_source->height   = pCodecParam->height;
+        } 
+    }
+
+	return replay_source;
 };
 
 static void replay_source_destroy(void *data)
@@ -84,10 +108,12 @@ static void replay_source_render(void *data, gs_effect_t *effect)
 
 static uint32_t replay_source_width(void *data)
 {
-	return;
+    ReplaySource* replay_source = static_cast<ReplaySource*>(data);
+    return replay_source->width; 
 };
 
 static uint32_t replay_source_height(void *data)
 {
-	return;
+    ReplaySource* replay_source = static_cast<ReplaySource*>(data);
+	return replay_source->height;
 };

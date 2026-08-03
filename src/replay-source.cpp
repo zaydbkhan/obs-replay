@@ -55,19 +55,50 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 	replay_source->source = source;
 
 	// allocate format context, open file & get stream info
-	AVFormatContext *fmt_ctx = avformat_alloc_context();
-	avformat_open_input(&fmt_ctx, "/home/zayd/Dev/obs-replay/test_files/poc.mkv", NULL,
+	AVFormatContext *format_ctx = avformat_alloc_context();
+	avformat_open_input(&format_ctx, "/home/zayd/Dev/obs-replay/test_files/poc.mkv", NULL,
 			    NULL); // replace w/ your path, idk i'm just hardcoding it for now
-	avformat_find_stream_info(fmt_ctx, NULL);
+	avformat_find_stream_info(format_ctx, NULL);
 
-	AVCodec *pCodec = NULL;
-	// this component describes the properties of a codec used by the stream i
-	// https://ffmpeg.org/doxygen/trunk/structAVCodecParameters.html
-	AVCodecParameters *pCodecParameters = NULL;
+	// determine which codec to use and open it
+	const AVCodec *codec = NULL;
+	AVCodecParameters *codec_params = NULL;
+	AVCodecContext *codec_ctx = NULL;
 	int video_stream_index = -1;
 
+	// loop through streams to find video stream
+	for (int i = 0; i < format_ctx->nb_streams; i++) {
+		AVCodecParameters *tmp_codec_params = NULL;
+		tmp_codec_params = format_ctx->streams[i]->codecpar;
+
+		// Grab just video codec
+		if (tmp_codec_params->codec_type == AVMEDIA_TYPE_VIDEO) {
+			codec = avcodec_find_decoder(tmp_codec_params->codec_id);
+			codec_params = tmp_codec_params;
+			video_stream_index = i;
+			break;
+		}
+	}
+
+	codec_ctx = avcodec_alloc_context3(codec);
+	avcodec_parameters_to_context(codec_ctx, codec_params);
+	avcodec_open2(codec_ctx, codec, NULL);
+
+	// read & decode a single frame (video frame, not av frame)
+	AVPacket *packet = av_packet_alloc();
+	AVFrame *frame = av_frame_alloc();
+
+	// go through packets and decode one frame
+	while (av_read_frame(format_ctx, packet) >= 0) {
+		if (packet->stream_index == video_stream_index) {
+			char frame_fname[1024];
+			avcodec_send_packet(codec_ctx, packet);
+			avcodec_receive_frame(codec_ctx, frame);
+		}
+	}
+
 	return replay_source;
-};
+}
 
 static void replay_source_destroy(void *data)
 {

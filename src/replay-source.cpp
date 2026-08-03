@@ -1,6 +1,13 @@
 #include <filesystem>
 #include <obs-source.h>
 
+extern "C" {
+#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libavutil/imgutils.h>
+#include <libswscale/swscale.h>
+}
+
 struct ReplaySource {
 	/*
     The source context data that is passed back and forth to OBS. As I understand it, each 

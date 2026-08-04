@@ -4,6 +4,7 @@
 extern "C" {
 #include <libavformat/avformat.h>
 #include <libavcodec/avcodec.h>
+#include <libavutil/error.h>
 #include <libavutil/imgutils.h>
 #include <libswscale/swscale.h>
 }
@@ -71,10 +72,20 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 	ReplaySource *replay_source = new ReplaySource();
 	replay_source->source = source;
 
+	const char *file_path = "/home/zayd/Dev/obs-replay/test_files/gorilla.mkv"; // TODO: make configurable
+
 	// allocate format context, open file & get stream info
 	AVFormatContext *format_ctx = avformat_alloc_context();
-	avformat_open_input(&format_ctx, "/home/zayd/Dev/obs-replay/test_files/gorilla.mkv", NULL,
-			    NULL); // replace w/ your path, idk i'm just hardcoding it for now
+	char errbuf[AV_ERROR_MAX_STRING_SIZE] = {0};
+	int open_ret = avformat_open_input(&format_ctx, file_path, NULL, NULL);
+	if (open_ret < 0) {
+		// file is missing/unreadable (e.g. other machine) -- bail out instead of
+		// dereferencing the NULL'd context below
+		av_strerror(open_ret, errbuf, sizeof(errbuf));
+		blog(LOG_ERROR, "[replay-source] failed to open file '%s': %s", file_path, errbuf);
+		delete replay_source;
+		return nullptr;
+	}
 	avformat_find_stream_info(format_ctx, NULL);
 
 	// determine which codec to use and open it
@@ -109,12 +120,16 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 	AVFrame *frame = av_frame_alloc();
 
 	// go through packets and decode one frame
-	while (av_read_frame(format_ctx, packet) >= 0) {
+	// receive_frame returns EAGAIN until enough packets have been sent (B-frames,
+	// etc.), so keep feeding packets until a frame actually comes out
+	bool frame_decoded = false;
+	while (!frame_decoded && av_read_frame(format_ctx, packet) >= 0) {
 		if (packet->stream_index == video_stream_index) {
 			avcodec_send_packet(codec_ctx, packet);
-			avcodec_receive_frame(codec_ctx, frame);
-			break;
+			if (avcodec_receive_frame(codec_ctx, frame) >= 0)
+				frame_decoded = true;
 		}
+		av_packet_unref(packet);
 	}
 
 	// cleanup
@@ -153,6 +168,10 @@ static void replay_source_update(void *data, obs_data_t *settings)
 static void replay_source_render(void *data, gs_effect_t *effect)
 {
 	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
+
+	// no decoded frame yet (e.g. hit EOF) -- nothing to draw, don't crash
+	if (!replay_source->frame || !replay_source->frame->data[0])
+		return;
 
 	if (!replay_source->tex) {
 		AVFrame *frame = replay_source->frame;

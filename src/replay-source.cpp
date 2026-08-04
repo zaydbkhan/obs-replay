@@ -1,8 +1,5 @@
 #include <filesystem>
 #include <obs-source.h>
-#include <libavformat/avformat.h>
-#include <libavcodec/avcodec.h>
-#include <libswscale/swscale.h>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -27,12 +24,20 @@ struct ReplaySource {
 	AVFrame *frame;
 };
 
-// This is what OBS actually expects when loading a source. Constructed once and then never
-// touched by us again -- purely exists to pass the necessary functions/settings to OBS
-struct obs_source_info replay_source_info;
+static const char *replay_source_name(void *unused);
+static void *replay_source_create(obs_data_t *settings, obs_source_t *source);
+static void replay_source_destroy(void *data);
+static void replay_source_update(void *data, obs_data_t *settings);
+static void replay_source_render(void *data, gs_effect_t *effect);
+static uint32_t replay_source_width(void *data);
+static uint32_t replay_source_height(void *data);
 
 bool register_replay_source()
 {
+	// This is what OBS actually expects when loading a source. Constructed once and then never
+	// touched by us again -- purely exists to pass the necessary functions/settings to OBS
+	struct obs_source_info replay_source_info;
+
 	replay_source_info.id = "replay-source";
 	replay_source_info.type = OBS_SOURCE_TYPE_INPUT;
 	replay_source_info.output_flags = OBS_SOURCE_VIDEO;

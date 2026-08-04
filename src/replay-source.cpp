@@ -22,6 +22,8 @@ struct ReplaySource {
 	uint32_t height;
 
 	AVFrame *frame;
+
+	gs_texture_t *tex = nullptr;
 };
 
 static const char *replay_source_name(void *unused);
@@ -69,7 +71,7 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 
 	// allocate format context, open file & get stream info
 	AVFormatContext *format_ctx = avformat_alloc_context();
-	avformat_open_input(&format_ctx, "/home/zayd/Dev/obs-replay/test_files/poc.mkv", NULL,
+	avformat_open_input(&format_ctx, "/home/zayd/Dev/obs-replay/test_files/gorilla.mkv", NULL,
 			    NULL); // replace w/ your path, idk i'm just hardcoding it for now
 	avformat_find_stream_info(format_ctx, NULL);
 
@@ -127,8 +129,15 @@ static void replay_source_destroy(void *data)
 {
 	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
 	av_frame_free(&(replay_source->frame));
+
+	// lock the graphics thread for thread-safe deletion
+	if (replay_source->tex) {
+		obs_enter_graphics();
+		gs_texture_destroy(replay_source->tex);
+		obs_leave_graphics();
+	}
+
 	delete replay_source;
-	return;
 };
 
 static void replay_source_update(void *data, obs_data_t *settings)
@@ -136,9 +145,36 @@ static void replay_source_update(void *data, obs_data_t *settings)
 	return;
 };
 
+// key takeaway (approximately): texture is the image in memory, the effect is instructions on how to draw it
 static void replay_source_render(void *data, gs_effect_t *effect)
 {
-	return;
+	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
+
+	if (!replay_source->tex) {
+		AVFrame *frame = replay_source->frame;
+
+		// convert YUV to RGBA
+		SwsContext *sws = sws_getContext(frame->width, frame->height, (AVPixelFormat)frame->format,
+						 frame->width, frame->height, AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr,
+						 nullptr, nullptr);
+
+		uint8_t *rgba_data[1];
+		int rgba_linesize[1];
+		av_image_alloc(rgba_data, rgba_linesize, frame->width, frame->height, AV_PIX_FMT_RGBA, 1);
+		sws_scale(sws, frame->data, frame->linesize, 0, frame->height, rgba_data, rgba_linesize);
+
+		// create texture and bind the image to the texture
+		replay_source->tex = gs_texture_create(frame->width, frame->height, GS_RGBA, 1, nullptr, GS_DYNAMIC);
+		gs_texture_set_image(replay_source->tex, rgba_data[0], rgba_linesize[0], false);
+
+		av_freep(&rgba_data[0]);
+		sws_freeContext(sws);
+	}
+
+	// set the texture for the effect so that we can actually draw the image
+	gs_effect_set_texture(gs_effect_get_param_by_name(effect, "image"), replay_source->tex);
+	while (gs_effect_loop(effect, "Draw"))
+		gs_draw_sprite(replay_source->tex, 0, replay_source->width, replay_source->height);
 };
 
 static uint32_t replay_source_width(void *data)

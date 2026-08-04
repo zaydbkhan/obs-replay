@@ -109,6 +109,7 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 		if (packet->stream_index == video_stream_index) {
 			avcodec_send_packet(codec_ctx, packet);
 			avcodec_receive_frame(codec_ctx, frame);
+			break;
 		}
 	}
 

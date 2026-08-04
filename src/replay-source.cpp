@@ -1,5 +1,8 @@
 #include <filesystem>
 #include <obs-source.h>
+#include <libavformat/avformat.h>
+#include <libavcodec/avcodec.h>
+#include <libswscale/swscale.h>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -17,6 +20,9 @@ struct ReplaySource {
 
 	// handle back to self
 	obs_source_t *source;
+
+	uint32_t width;
+	uint32_t height;
 };
 
 // This is what OBS actually expects when loading a source. Constructed once and then never
@@ -80,6 +86,9 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 		}
 	}
 
+	replay_source->width = codec_params->width;
+	replay_source->height = codec_params->height;
+
 	codec_ctx = avcodec_alloc_context3(codec);
 	avcodec_parameters_to_context(codec_ctx, codec_params);
 	avcodec_open2(codec_ctx, codec, NULL);
@@ -117,10 +126,12 @@ static void replay_source_render(void *data, gs_effect_t *effect)
 
 static uint32_t replay_source_width(void *data)
 {
-	return;
+	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
+	return replay_source->width;
 };
 
 static uint32_t replay_source_height(void *data)
 {
-	return;
+	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
+	return replay_source->height;
 };

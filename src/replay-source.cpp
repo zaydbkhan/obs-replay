@@ -167,6 +167,7 @@ static void replay_source_update(void *data, obs_data_t *settings)
 // key takeaway (approximately): texture is the image in memory, the effect is instructions on how to draw it
 static void replay_source_render(void *data, gs_effect_t *effect)
 {
+	UNUSED_PARAMETER(effect);
 	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
 
 	// no decoded frame yet (e.g. hit EOF) -- nothing to draw, don't crash

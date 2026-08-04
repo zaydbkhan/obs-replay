@@ -39,7 +39,7 @@ bool register_replay_source()
 {
 	// This is what OBS actually expects when loading a source. Constructed once and then never
 	// touched by us again -- purely exists to pass the necessary functions/settings to OBS
-	struct obs_source_info replay_source_info;
+	struct obs_source_info replay_source_info = {};
 
 	replay_source_info.id = "replay-source";
 	replay_source_info.type = OBS_SOURCE_TYPE_INPUT;

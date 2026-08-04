@@ -23,6 +23,8 @@ struct ReplaySource {
 
 	uint32_t width;
 	uint32_t height;
+
+	AVFrame *frame;
 };
 
 // This is what OBS actually expects when loading a source. Constructed once and then never
@@ -57,7 +59,7 @@ const static char *replay_source_name(void *unused)
 // https://github.com/leandromoreira/ffmpeg-libav-tutorial
 static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 {
-	auto *replay_source = new ReplaySource();
+	ReplaySource *replay_source = new ReplaySource();
 	replay_source->source = source;
 
 	// allocate format context, open file & get stream info
@@ -100,17 +102,26 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 	// go through packets and decode one frame
 	while (av_read_frame(format_ctx, packet) >= 0) {
 		if (packet->stream_index == video_stream_index) {
-			char frame_fname[1024];
 			avcodec_send_packet(codec_ctx, packet);
 			avcodec_receive_frame(codec_ctx, frame);
 		}
 	}
 
+	// cleanup
+	avformat_close_input(&format_ctx);
+	avformat_free_context(format_ctx);
+	avcodec_free_context(&codec_ctx);
+	av_packet_free(&packet);
+
+	replay_source->frame = frame;
 	return replay_source;
 }
 
 static void replay_source_destroy(void *data)
 {
+	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
+	av_frame_free(&(replay_source->frame));
+	delete replay_source;
 	return;
 };
 

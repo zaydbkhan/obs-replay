@@ -1,5 +1,5 @@
 #include <filesystem>
-#include <obs-source.h>
+#include <obs-module.h>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -66,6 +66,8 @@ const static char *replay_source_name(void *unused)
 // https://github.com/leandromoreira/ffmpeg-libav-tutorial
 static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 {
+	UNUSED_PARAMETER(settings);
+
 	ReplaySource *replay_source = new ReplaySource();
 	replay_source->source = source;
 
@@ -82,7 +84,7 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 	int video_stream_index = -1;
 
 	// loop through streams to find video stream
-	for (int i = 0; i < format_ctx->nb_streams; i++) {
+	for (uint32_t i = 0; i < format_ctx->nb_streams; i++) {
 		AVCodecParameters *tmp_codec_params = NULL;
 		tmp_codec_params = format_ctx->streams[i]->codecpar;
 
@@ -142,6 +144,8 @@ static void replay_source_destroy(void *data)
 
 static void replay_source_update(void *data, obs_data_t *settings)
 {
+	UNUSED_PARAMETER(data);
+	UNUSED_PARAMETER(settings);
 	return;
 };
 

@@ -39,7 +39,7 @@ bool register_replay_source()
 {
 	// This is what OBS actually expects when loading a source. Constructed once and then never
 	// touched by us again -- purely exists to pass the necessary functions/settings to OBS
-	struct obs_source_info replay_source_info;
+	struct obs_source_info replay_source_info = {};
 
 	replay_source_info.id = "replay-source";
 	replay_source_info.type = OBS_SOURCE_TYPE_INPUT;
@@ -181,8 +181,8 @@ static void replay_source_render(void *data, gs_effect_t *effect)
 						 frame->width, frame->height, AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr,
 						 nullptr, nullptr);
 
-		uint8_t *rgba_data[1];
-		int rgba_linesize[1];
+		uint8_t *rgba_data[4];
+		int rgba_linesize[4];
 		av_image_alloc(rgba_data, rgba_linesize, frame->width, frame->height, AV_PIX_FMT_RGBA, 1);
 		sws_scale(sws, frame->data, frame->linesize, 0, frame->height, rgba_data, rgba_linesize);
 
@@ -194,10 +194,9 @@ static void replay_source_render(void *data, gs_effect_t *effect)
 		sws_freeContext(sws);
 	}
 
-	// set the texture for the effect so that we can actually draw the image
-	gs_effect_set_texture(gs_effect_get_param_by_name(effect, "image"), replay_source->tex);
-	while (gs_effect_loop(effect, "Draw"))
-		gs_draw_sprite(replay_source->tex, 0, replay_source->width, replay_source->height);
+	// OBS has already begun the effect's "Draw" technique before calling
+	// video_render, so draw directly with the active effect
+	obs_source_draw(replay_source->tex, 0, 0, replay_source->width, replay_source->height, false);
 };
 
 static uint32_t replay_source_width(void *data)

@@ -106,7 +106,7 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 	ReplaySource *rs = new ReplaySource();
 	rs->source = source;
 
-	const char *file_path = "/home/zayd/Dev/obs-replay/test_files/gorilla.mkv";
+	const char *file_path = "/home/zayd/Dev/obs-replay/test_files/northernlion.mkv";
 
 	open_input(rs, file_path);
 	open_format(rs);

@@ -41,6 +41,7 @@ struct ReplaySource {
 	AVPacket *packet;
 	AVFrame *frame;
 
+	SwsContext *sws = nullptr;
 	gs_texture_t *tex = nullptr;
 };
 
@@ -61,6 +62,8 @@ static uint32_t replay_source_height(void *data);
 static void open_input(ReplaySource *rs, const char *path);
 static void open_format(ReplaySource *rs);
 static void open_codec(ReplaySource *rs);
+static void open_sws(ReplaySource *rs);
+static void open_texture(ReplaySource *rs);
 static bool decode_next_frame(ReplaySource *rs);
 
 // AVIOContext custom functions
@@ -107,6 +110,8 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 	open_input(rs, file_path);
 	open_format(rs);
 	open_codec(rs);
+	open_sws(rs);
+	open_texture(rs);
 
 	// decode the first frame so there's something to render
 	rs->frame = av_frame_alloc();
@@ -127,6 +132,9 @@ static void replay_source_destroy(void *data)
 	avformat_close_input(&rs->format_ctx);
 	av_freep(&rs->avio_ctx->buffer); // must be freed before the context
 	avio_context_free(&rs->avio_ctx);
+
+	// sws cleanup
+	sws_freeContext(rs->sws);
 
 	// lock the graphics thread for thread-safe deletion
 	if (rs->tex) {
@@ -169,22 +177,14 @@ static void replay_source_render(void *data, gs_effect_t *effect)
 	if (!rs->frame || !rs->frame->data[0])
 		return;
 
-	// convert YUV to RGBA
-	SwsContext *sws = sws_getContext(rs->frame->width, rs->frame->height, (AVPixelFormat)rs->frame->format,
-					 rs->frame->width, rs->frame->height, AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr,
-					 nullptr, nullptr);
-
 	uint8_t *rgba_data[4];
 	int rgba_linesize[4];
 	av_image_alloc(rgba_data, rgba_linesize, rs->frame->width, rs->frame->height, AV_PIX_FMT_RGBA, 1);
-	sws_scale(sws, rs->frame->data, rs->frame->linesize, 0, rs->frame->height, rgba_data, rgba_linesize);
+	sws_scale(rs->sws, rs->frame->data, rs->frame->linesize, 0, rs->frame->height, rgba_data, rgba_linesize);
 
-	// create texture and bind the image to the texture
-	rs->tex = gs_texture_create(rs->frame->width, rs->frame->height, GS_RGBA, 1, nullptr, GS_DYNAMIC);
 	gs_texture_set_image(rs->tex, rgba_data[0], rgba_linesize[0], false);
 
 	av_freep(&rgba_data[0]);
-	sws_freeContext(sws);
 
 	// OBS has already begun the effect's "Draw" technique before calling
 	// video_render, so draw directly with the active effect
@@ -326,4 +326,18 @@ static int64_t mmap_seek(void *opaque, int64_t offset, int whence)
 		return -1;
 	io->pos = new_pos;
 	return new_pos;
+}
+
+static void open_sws(ReplaySource *rs)
+{
+	rs->sws = sws_getContext(rs->width, rs->height, rs->codec_ctx->pix_fmt,
+				 rs->width, rs->height, AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr,
+				 nullptr, nullptr);
+}
+
+static void open_texture(ReplaySource *rs)
+{
+	obs_enter_graphics();
+	rs->tex = gs_texture_create(rs->width, rs->height, GS_RGBA, 1, nullptr, GS_DYNAMIC);
+	obs_leave_graphics();
 }

@@ -52,6 +52,17 @@ static void replay_source_render(void *data, gs_effect_t *effect);
 static uint32_t replay_source_width(void *data);
 static uint32_t replay_source_height(void *data);
 
+// helper functions for file mmap, creation of avio resources
+// i don't necessarily love how these were broken up, they seem like
+// they have some implicit dependencies on each other i.e. you need
+// to call them in order, but it seemed necessary to break them up
+// at least a little and i was too lazy to do myself
+static void open_input(ReplaySource *rs, const char *path);
+static void open_format(ReplaySource *rs);
+static void open_codec(ReplaySource *rs);
+static bool decode_next_frame(ReplaySource *rs);
+
+// AVIOContext custom functions
 static int mmap_read(void *opaque, uint8_t *buf, int buf_size);
 static int64_t mmap_seek(void *opaque, int64_t offset, int whence);
 
@@ -80,6 +91,108 @@ const static char *replay_source_name(void *unused)
 {
 	UNUSED_PARAMETER(unused);
 	return "Instant Replay";
+};
+
+static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
+{
+	UNUSED_PARAMETER(settings);
+
+	ReplaySource *rs = new ReplaySource();
+	rs->source = source;
+
+	const char *file_path = "/home/zayd/Dev/obs-replay/test_files/gorilla.mkv";
+
+	open_input(rs, file_path);
+	open_format(rs);
+	open_codec(rs);
+
+	// decode the first frame so there's something to render
+	rs->frame = av_frame_alloc();
+	decode_next_frame(rs);
+
+	return rs;
+}
+
+static void replay_source_destroy(void *data)
+{
+	ReplaySource *rs = static_cast<ReplaySource *>(data);
+
+	av_frame_free(&(rs->frame));
+	av_packet_free(&rs->packet);
+	avcodec_free_context(&rs->codec_ctx);
+	// frees the format context; our custom AVIOContext (CUSTOM_IO) is left
+	// untouched, so it is freed below
+	avformat_close_input(&rs->format_ctx);
+	av_freep(&rs->avio_ctx->buffer); // must be freed before the context
+	avio_context_free(&rs->avio_ctx);
+
+	// lock the graphics thread for thread-safe deletion
+	if (rs->tex) {
+		obs_enter_graphics();
+		gs_texture_destroy(rs->tex);
+		obs_leave_graphics();
+	}
+
+	// mmap cleanup
+	munmap(rs->mmap_io.base, rs->mmap_io.size);
+	close(rs->fd);
+
+	delete rs;
+};
+
+static void replay_source_update(void *data, obs_data_t *settings)
+{
+	UNUSED_PARAMETER(data);
+	UNUSED_PARAMETER(settings);
+	return;
+};
+
+// key takeaway (approximately): texture is the image in memory, the effect is instructions on how to draw it
+static void replay_source_render(void *data, gs_effect_t *effect)
+{
+	UNUSED_PARAMETER(effect);
+	ReplaySource *rs = static_cast<ReplaySource *>(data);
+
+	// no decoded frame yet (e.g. hit EOF) -- nothing to draw, don't crash
+	if (!rs->frame || !rs->frame->data[0])
+		return;
+
+	if (!rs->tex) {
+		AVFrame *frame = rs->frame;
+
+		// convert YUV to RGBA
+		SwsContext *sws = sws_getContext(frame->width, frame->height, (AVPixelFormat)frame->format,
+						 frame->width, frame->height, AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr,
+						 nullptr, nullptr);
+
+		uint8_t *rgba_data[4];
+		int rgba_linesize[4];
+		av_image_alloc(rgba_data, rgba_linesize, frame->width, frame->height, AV_PIX_FMT_RGBA, 1);
+		sws_scale(sws, frame->data, frame->linesize, 0, frame->height, rgba_data, rgba_linesize);
+
+		// create texture and bind the image to the texture
+		rs->tex = gs_texture_create(frame->width, frame->height, GS_RGBA, 1, nullptr, GS_DYNAMIC);
+		gs_texture_set_image(rs->tex, rgba_data[0], rgba_linesize[0], false);
+
+		av_freep(&rgba_data[0]);
+		sws_freeContext(sws);
+	}
+
+	// OBS has already begun the effect's "Draw" technique before calling
+	// video_render, so draw directly with the active effect
+	obs_source_draw(rs->tex, 0, 0, rs->width, rs->height, false);
+};
+
+static uint32_t replay_source_width(void *data)
+{
+	ReplaySource *rs = static_cast<ReplaySource *>(data);
+	return rs->width;
+};
+
+static uint32_t replay_source_height(void *data)
+{
+	ReplaySource *rs = static_cast<ReplaySource *>(data);
+	return rs->height;
 };
 
 // https://github.com/leandromoreira/ffmpeg-libav-tutorial
@@ -178,109 +291,6 @@ static bool decode_next_frame(ReplaySource *rs)
 	return decoded;
 }
 
-static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
-{
-	UNUSED_PARAMETER(settings);
-
-	ReplaySource *replay_source = new ReplaySource();
-	replay_source->source = source;
-
-	const char *file_path = "/home/zayd/Dev/obs-replay/test_files/gorilla.mkv";
-
-	open_input(replay_source, file_path);
-	open_format(replay_source);
-	open_codec(replay_source);
-
-	// decode the first frame so there's something to render
-	replay_source->frame = av_frame_alloc();
-	decode_next_frame(replay_source);
-
-	return replay_source;
-}
-
-static void replay_source_destroy(void *data)
-{
-	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
-
-	av_frame_free(&(replay_source->frame));
-	av_packet_free(&replay_source->packet);
-	avcodec_free_context(&replay_source->codec_ctx);
-	// frees the format context; our custom AVIOContext (CUSTOM_IO) is left
-	// untouched, so it is freed below
-	avformat_close_input(&replay_source->format_ctx);
-	av_freep(&replay_source->avio_ctx->buffer); // must be freed before the context
-	avio_context_free(&replay_source->avio_ctx);
-
-	// lock the graphics thread for thread-safe deletion
-	if (replay_source->tex) {
-		obs_enter_graphics();
-		gs_texture_destroy(replay_source->tex);
-		obs_leave_graphics();
-	}
-
-	// mmap cleanup
-	munmap(replay_source->mmap_io.base, replay_source->mmap_io.size);
-	close(replay_source->fd);
-
-	delete replay_source;
-};
-
-static void replay_source_update(void *data, obs_data_t *settings)
-{
-	UNUSED_PARAMETER(data);
-	UNUSED_PARAMETER(settings);
-	return;
-};
-
-// key takeaway (approximately): texture is the image in memory, the effect is instructions on how to draw it
-static void replay_source_render(void *data, gs_effect_t *effect)
-{
-	UNUSED_PARAMETER(effect);
-	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
-
-	// no decoded frame yet (e.g. hit EOF) -- nothing to draw, don't crash
-	if (!replay_source->frame || !replay_source->frame->data[0])
-		return;
-
-	if (!replay_source->tex) {
-		AVFrame *frame = replay_source->frame;
-
-		// convert YUV to RGBA
-		SwsContext *sws = sws_getContext(frame->width, frame->height, (AVPixelFormat)frame->format,
-						 frame->width, frame->height, AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr,
-						 nullptr, nullptr);
-
-		uint8_t *rgba_data[4];
-		int rgba_linesize[4];
-		av_image_alloc(rgba_data, rgba_linesize, frame->width, frame->height, AV_PIX_FMT_RGBA, 1);
-		sws_scale(sws, frame->data, frame->linesize, 0, frame->height, rgba_data, rgba_linesize);
-
-		// create texture and bind the image to the texture
-		replay_source->tex = gs_texture_create(frame->width, frame->height, GS_RGBA, 1, nullptr, GS_DYNAMIC);
-		gs_texture_set_image(replay_source->tex, rgba_data[0], rgba_linesize[0], false);
-
-		av_freep(&rgba_data[0]);
-		sws_freeContext(sws);
-	}
-
-	// OBS has already begun the effect's "Draw" technique before calling
-	// video_render, so draw directly with the active effect
-	obs_source_draw(replay_source->tex, 0, 0, replay_source->width, replay_source->height, false);
-};
-
-static uint32_t replay_source_width(void *data)
-{
-	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
-	return replay_source->width;
-};
-
-static uint32_t replay_source_height(void *data)
-{
-	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
-	return replay_source->height;
-};
-
-// AVIOContext functions
 static int mmap_read(void *opaque, uint8_t *buf, int buf_size)
 {
 	auto *io = static_cast<MmapIO *>(opaque);

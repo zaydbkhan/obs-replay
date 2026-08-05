@@ -182,12 +182,7 @@ static void replay_source_render(void *data, gs_effect_t *effect)
 	int rgba_linesize[4];
 	av_image_alloc(rgba_data, rgba_linesize, rs->frame->width, rs->frame->height, AV_PIX_FMT_RGBA, 1);
 	sws_scale(rs->sws, rs->frame->data, rs->frame->linesize, 0, rs->frame->height, rgba_data, rgba_linesize);
-
-	obs_log(LOG_INFO, "RGBA allocated: linesize=%d, size=%d", rgba_linesize[0],
-		rgba_linesize[0] * rs->frame->height);
-
 	gs_texture_set_image(rs->tex, rgba_data[0], rgba_linesize[0], false);
-
 	av_freep(&rgba_data[0]);
 
 	// OBS has already begun the effect's "Draw" technique before calling

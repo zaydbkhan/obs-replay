@@ -169,26 +169,22 @@ static void replay_source_render(void *data, gs_effect_t *effect)
 	if (!rs->frame || !rs->frame->data[0])
 		return;
 
-	if (!rs->tex) {
-		AVFrame *frame = rs->frame;
+	// convert YUV to RGBA
+	SwsContext *sws = sws_getContext(rs->frame->width, rs->frame->height, (AVPixelFormat)rs->frame->format,
+					 rs->frame->width, rs->frame->height, AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr,
+					 nullptr, nullptr);
 
-		// convert YUV to RGBA
-		SwsContext *sws = sws_getContext(frame->width, frame->height, (AVPixelFormat)frame->format,
-						 frame->width, frame->height, AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr,
-						 nullptr, nullptr);
+	uint8_t *rgba_data[4];
+	int rgba_linesize[4];
+	av_image_alloc(rgba_data, rgba_linesize, rs->frame->width, rs->frame->height, AV_PIX_FMT_RGBA, 1);
+	sws_scale(sws, rs->frame->data, rs->frame->linesize, 0, rs->frame->height, rgba_data, rgba_linesize);
 
-		uint8_t *rgba_data[4];
-		int rgba_linesize[4];
-		av_image_alloc(rgba_data, rgba_linesize, frame->width, frame->height, AV_PIX_FMT_RGBA, 1);
-		sws_scale(sws, frame->data, frame->linesize, 0, frame->height, rgba_data, rgba_linesize);
+	// create texture and bind the image to the texture
+	rs->tex = gs_texture_create(rs->frame->width, rs->frame->height, GS_RGBA, 1, nullptr, GS_DYNAMIC);
+	gs_texture_set_image(rs->tex, rgba_data[0], rgba_linesize[0], false);
 
-		// create texture and bind the image to the texture
-		rs->tex = gs_texture_create(frame->width, frame->height, GS_RGBA, 1, nullptr, GS_DYNAMIC);
-		gs_texture_set_image(rs->tex, rgba_data[0], rgba_linesize[0], false);
-
-		av_freep(&rgba_data[0]);
-		sws_freeContext(sws);
-	}
+	av_freep(&rgba_data[0]);
+	sws_freeContext(sws);
 
 	// OBS has already begun the effect's "Draw" technique before calling
 	// video_render, so draw directly with the active effect

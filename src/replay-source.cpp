@@ -48,6 +48,7 @@ static const char *replay_source_name(void *unused);
 static void *replay_source_create(obs_data_t *settings, obs_source_t *source);
 static void replay_source_destroy(void *data);
 static void replay_source_update(void *data, obs_data_t *settings);
+static void replay_source_tick(void *data, float seconds);
 static void replay_source_render(void *data, gs_effect_t *effect);
 static uint32_t replay_source_width(void *data);
 static uint32_t replay_source_height(void *data);
@@ -79,6 +80,7 @@ bool register_replay_source()
 	replay_source_info.create = replay_source_create;
 	replay_source_info.destroy = replay_source_destroy;
 	replay_source_info.update = replay_source_update;
+	replay_source_info.video_tick = replay_source_tick;
 	replay_source_info.video_render = replay_source_render;
 	replay_source_info.get_width = replay_source_width;
 	replay_source_info.get_height = replay_source_height;
@@ -146,6 +148,16 @@ static void replay_source_update(void *data, obs_data_t *settings)
 	UNUSED_PARAMETER(settings);
 	return;
 };
+
+// load the next frame. in practice this should take into account seconds
+// but for this POC we assume it's called reasonably often and just advance the frame
+// it might be called too fast so we get to see aaron gorilla.mkv in superspeed. eh good enough
+static void replay_source_tick(void *data, float seconds)
+{
+	UNUSED_PARAMETER(seconds);
+	ReplaySource *rs = static_cast<ReplaySource *>(data);
+	decode_next_frame(rs); // we don't care if this succeeds or fails for now
+}
 
 // key takeaway (approximately): texture is the image in memory, the effect is instructions on how to draw it
 static void replay_source_render(void *data, gs_effect_t *effect)

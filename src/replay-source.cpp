@@ -285,6 +285,7 @@ static bool decode_next_frame(ReplaySource *rs)
 			// got a frame -- hand it to the playhead
 			obs_log(LOG_INFO, "Decoded frame %d: %dx%d, format=%d, linesize[0]=%d, pts=%ld", ++frame_count,
 				tmp->width, tmp->height, tmp->format, tmp->linesize[0], tmp->pts);
+			av_frame_unref(rs->frame);
 			av_frame_move_ref(rs->frame, tmp);
 			decoded = true;
 			break;

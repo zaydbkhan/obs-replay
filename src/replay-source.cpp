@@ -177,10 +177,16 @@ static void replay_source_render(void *data, gs_effect_t *effect)
 	if (!rs->frame || !rs->frame->data[0])
 		return;
 
+	obs_log(LOG_INFO, "Render frame: %dx%d, format=%d, linesize[0]=%d, data[0]=%p", rs->frame->width,
+		rs->frame->height, rs->frame->format, rs->frame->linesize[0], rs->frame->data[0]);
+
 	uint8_t *rgba_data[4];
 	int rgba_linesize[4];
 	av_image_alloc(rgba_data, rgba_linesize, rs->frame->width, rs->frame->height, AV_PIX_FMT_RGBA, 1);
 	sws_scale(rs->sws, rs->frame->data, rs->frame->linesize, 0, rs->frame->height, rgba_data, rgba_linesize);
+
+	obs_log(LOG_INFO, "RGBA allocated: linesize=%d, size=%d", rgba_linesize[0],
+		rgba_linesize[0] * rs->frame->height);
 
 	gs_texture_set_image(rs->tex, rgba_data[0], rgba_linesize[0], false);
 
@@ -244,9 +250,16 @@ static void open_codec(ReplaySource *rs)
 			rs->width = codec_params->width;
 			rs->height = codec_params->height;
 
+			obs_log(LOG_INFO, "Video stream found: %dx%d, codec: %s, pix_fmt: %d", rs->width, rs->height,
+				codec->name, codec_params->format);
+
 			rs->codec_ctx = avcodec_alloc_context3(codec);
 			avcodec_parameters_to_context(rs->codec_ctx, codec_params);
 			avcodec_open2(rs->codec_ctx, codec, NULL);
+
+			obs_log(LOG_INFO, "Codec context opened: %dx%d, pix_fmt: %d, thread_count: %d",
+				rs->codec_ctx->width, rs->codec_ctx->height, rs->codec_ctx->pix_fmt,
+				rs->codec_ctx->thread_count);
 			break;
 		}
 	}
@@ -265,12 +278,15 @@ static bool decode_next_frame(ReplaySource *rs)
 	AVFrame *tmp = av_frame_alloc();
 	bool decoded = false;
 	bool flushed = false;
+	static int frame_count = 0;
 
 	while (true) {
 		int ret = avcodec_receive_frame(rs->codec_ctx, tmp);
 
 		if (ret >= 0) {
 			// got a frame -- hand it to the playhead
+			obs_log(LOG_INFO, "Decoded frame %d: %dx%d, format=%d, linesize[0]=%d, pts=%ld", ++frame_count,
+				tmp->width, tmp->height, tmp->format, tmp->linesize[0], tmp->pts);
 			av_frame_move_ref(rs->frame, tmp);
 			decoded = true;
 			break;
@@ -330,13 +346,15 @@ static int64_t mmap_seek(void *opaque, int64_t offset, int whence)
 
 static void open_sws(ReplaySource *rs)
 {
-	rs->sws = sws_getContext(rs->width, rs->height, rs->codec_ctx->pix_fmt,
-				 rs->width, rs->height, AV_PIX_FMT_RGBA, SWS_BILINEAR, nullptr,
-				 nullptr, nullptr);
+	obs_log(LOG_INFO, "Creating sws context: src %dx%d fmt=%d, dst %dx%d fmt=RGBA", rs->width, rs->height,
+		rs->codec_ctx->pix_fmt, rs->width, rs->height);
+	rs->sws = sws_getContext(rs->width, rs->height, rs->codec_ctx->pix_fmt, rs->width, rs->height, AV_PIX_FMT_RGBA,
+				 SWS_BILINEAR, nullptr, nullptr, nullptr);
 }
 
 static void open_texture(ReplaySource *rs)
 {
+	obs_log(LOG_INFO, "Creating texture: %dx%d", rs->width, rs->height);
 	obs_enter_graphics();
 	rs->tex = gs_texture_create(rs->width, rs->height, GS_RGBA, 1, nullptr, GS_DYNAMIC);
 	obs_leave_graphics();

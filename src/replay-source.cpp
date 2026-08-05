@@ -178,9 +178,6 @@ static void replay_source_render(void *data, gs_effect_t *effect)
 	if (!rs->frame || !rs->frame->data[0])
 		return;
 
-	obs_log(LOG_INFO, "Render frame: %dx%d, format=%d, linesize[0]=%d, data[0]=%p", rs->frame->width,
-		rs->frame->height, rs->frame->format, rs->frame->linesize[0], rs->frame->data[0]);
-
 	uint8_t *rgba_data[4];
 	int rgba_linesize[4];
 	av_image_alloc(rgba_data, rgba_linesize, rs->frame->width, rs->frame->height, AV_PIX_FMT_RGBA, 1);

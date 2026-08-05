@@ -34,6 +34,11 @@ struct ReplaySource {
 	uint32_t width;
 	uint32_t height;
 
+	int video_stream_index;
+	AVFormatContext *format_ctx;
+	AVIOContext *avio_ctx;
+	AVCodecContext *codec_ctx;
+	AVPacket *packet;
 	AVFrame *frame;
 
 	gs_texture_t *tex = nullptr;
@@ -78,6 +83,101 @@ const static char *replay_source_name(void *unused)
 };
 
 // https://github.com/leandromoreira/ffmpeg-libav-tutorial
+static void open_input(ReplaySource *rs, const char *path)
+{
+	// mmap file
+	rs->fd = open(path, O_RDONLY);
+	struct stat st;
+	fstat(rs->fd, &st);
+	rs->mmap_io.base = static_cast<uint8_t *>(mmap(nullptr, st.st_size, PROT_READ, MAP_PRIVATE, rs->fd, 0));
+	rs->mmap_io.size = st.st_size;
+}
+
+static void open_format(ReplaySource *rs)
+{
+	// custom AVIOContext for our mmaped scenario
+	uint8_t *avio_buf = static_cast<uint8_t *>(av_malloc(4096));
+	rs->avio_ctx = avio_alloc_context(avio_buf, 4096, 0, &(rs->mmap_io), mmap_read, nullptr, mmap_seek);
+
+	// allocate format context, open file & get stream info
+	rs->format_ctx = avformat_alloc_context();
+	rs->format_ctx->pb = rs->avio_ctx;
+	avformat_open_input(&rs->format_ctx, "", nullptr,
+			    nullptr); // file is a nullptr because we pass it into the custom context earlier
+	avformat_find_stream_info(rs->format_ctx, NULL);
+}
+
+static void open_codec(ReplaySource *rs)
+{
+	// determine which codec to use and open it
+	const AVCodec *codec = NULL;
+
+	// loop through streams to find video stream
+	for (uint32_t i = 0; i < rs->format_ctx->nb_streams; i++) {
+		AVCodecParameters *codec_params = rs->format_ctx->streams[i]->codecpar;
+
+		// Grab just video codec
+		if (codec_params->codec_type == AVMEDIA_TYPE_VIDEO) {
+			codec = avcodec_find_decoder(codec_params->codec_id);
+			rs->video_stream_index = i;
+			rs->width = codec_params->width;
+			rs->height = codec_params->height;
+
+			rs->codec_ctx = avcodec_alloc_context3(codec);
+			avcodec_parameters_to_context(rs->codec_ctx, codec_params);
+			avcodec_open2(rs->codec_ctx, codec, NULL);
+			break;
+		}
+	}
+}
+
+// advances the playhead one frame; returns false once the file has been fully
+// decoded (the last decoded frame stays in place, like a real player)
+static bool decode_next_frame(ReplaySource *rs)
+{
+	if (!rs->packet)
+		rs->packet = av_packet_alloc();
+
+	// decode into a scratch frame -- avcodec_receive_frame unrefs the frame it
+	// is given even when it returns EAGAIN, so the frame render is currently
+	// showing must not be passed in directly
+	AVFrame *tmp = av_frame_alloc();
+	bool decoded = false;
+	bool flushed = false;
+
+	while (true) {
+		int ret = avcodec_receive_frame(rs->codec_ctx, tmp);
+
+		if (ret >= 0) {
+			// got a frame -- hand it to the playhead
+			av_frame_move_ref(rs->frame, tmp);
+			decoded = true;
+			break;
+		}
+		if (ret == AVERROR_EOF)
+			break; // codec fully drained -- no more frames
+
+		// EAGAIN -- feed the codec more data. receive_frame can stay EAGAIN
+		// across several packets (B-frames, etc.), so keep reading until a
+		// frame actually comes out
+		if (av_read_frame(rs->format_ctx, rs->packet) < 0) {
+			// EOF -- flush the codec so buffered frames still come out
+			if (!flushed) {
+				avcodec_send_packet(rs->codec_ctx, NULL);
+				flushed = true;
+			}
+			continue;
+		}
+
+		if (rs->packet->stream_index == rs->video_stream_index)
+			avcodec_send_packet(rs->codec_ctx, rs->packet);
+		av_packet_unref(rs->packet);
+	}
+
+	av_frame_free(&tmp);
+	return decoded;
+}
+
 static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 {
 	UNUSED_PARAMETER(settings);
@@ -87,86 +187,29 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 
 	const char *file_path = "/home/zayd/Dev/obs-replay/test_files/gorilla.mkv";
 
-	// mmap file
-	replay_source->fd = open(file_path, O_RDONLY);
-	struct stat st;
-	fstat(replay_source->fd, &st);
-	replay_source->mmap_io.base =
-		static_cast<uint8_t *>(mmap(nullptr, st.st_size, PROT_READ, MAP_PRIVATE, replay_source->fd, 0));
-	replay_source->mmap_io.size = st.st_size;
+	open_input(replay_source, file_path);
+	open_format(replay_source);
+	open_codec(replay_source);
 
-	// custom AVIOContext for our mmaped scenario
-	uint8_t *avio_buf = static_cast<uint8_t *>(av_malloc(4096));
-	AVIOContext *avio_ctx =
-		avio_alloc_context(avio_buf, 4096, 0, &(replay_source->mmap_io), mmap_read, nullptr, mmap_seek);
+	// decode the first frame so there's something to render
+	replay_source->frame = av_frame_alloc();
+	decode_next_frame(replay_source);
 
-	// allocate format context, open file & get stream info
-	AVFormatContext *format_ctx = avformat_alloc_context();
-	format_ctx->pb = avio_ctx;
-	avformat_open_input(&format_ctx, "", nullptr,
-			    nullptr); // file is a nullptr because we pass it into the custom context earlier
-	avformat_find_stream_info(format_ctx, NULL);
-
-	// determine which codec to use and open it
-	const AVCodec *codec = NULL;
-	AVCodecParameters *codec_params = NULL;
-	AVCodecContext *codec_ctx = NULL;
-	int video_stream_index = -1;
-
-	// loop through streams to find video stream
-	for (uint32_t i = 0; i < format_ctx->nb_streams; i++) {
-		AVCodecParameters *tmp_codec_params = NULL;
-		tmp_codec_params = format_ctx->streams[i]->codecpar;
-
-		// Grab just video codec
-		if (tmp_codec_params->codec_type == AVMEDIA_TYPE_VIDEO) {
-			codec = avcodec_find_decoder(tmp_codec_params->codec_id);
-			codec_params = tmp_codec_params;
-			video_stream_index = i;
-			break;
-		}
-	}
-
-	replay_source->width = codec_params->width;
-	replay_source->height = codec_params->height;
-
-	codec_ctx = avcodec_alloc_context3(codec);
-	avcodec_parameters_to_context(codec_ctx, codec_params);
-	avcodec_open2(codec_ctx, codec, NULL);
-
-	// read & decode a single frame (video frame, not av frame)
-	AVPacket *packet = av_packet_alloc();
-	AVFrame *frame = av_frame_alloc();
-
-	// go through packets and decode one frame
-	// receive_frame returns EAGAIN until enough packets have been sent (B-frames,
-	// etc.), so keep feeding packets until a frame actually comes out
-	bool frame_decoded = false;
-	while (!frame_decoded && av_read_frame(format_ctx, packet) >= 0) {
-		if (packet->stream_index == video_stream_index) {
-			avcodec_send_packet(codec_ctx, packet);
-			if (avcodec_receive_frame(codec_ctx, frame) >= 0)
-				frame_decoded = true;
-		}
-		av_packet_unref(packet);
-	}
-
-	// cleanup
-	avformat_close_input(&format_ctx);
-	avformat_free_context(format_ctx);
-	av_freep(&avio_ctx->buffer); // must be freed before the context
-	avio_context_free(&avio_ctx);
-	avcodec_free_context(&codec_ctx);
-	av_packet_free(&packet);
-
-	replay_source->frame = frame;
 	return replay_source;
 }
 
 static void replay_source_destroy(void *data)
 {
 	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
+
 	av_frame_free(&(replay_source->frame));
+	av_packet_free(&replay_source->packet);
+	avcodec_free_context(&replay_source->codec_ctx);
+	// frees the format context; our custom AVIOContext (CUSTOM_IO) is left
+	// untouched, so it is freed below
+	avformat_close_input(&replay_source->format_ctx);
+	av_freep(&replay_source->avio_ctx->buffer); // must be freed before the context
+	avio_context_free(&replay_source->avio_ctx);
 
 	// lock the graphics thread for thread-safe deletion
 	if (replay_source->tex) {

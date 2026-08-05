@@ -1,4 +1,7 @@
-#include <filesystem>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <sys/stat.h>
+#include <unistd.h>
 #include <obs-module.h>
 
 extern "C" {
@@ -9,6 +12,12 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
+struct MmapIO {
+	uint8_t *base;
+	size_t size;
+	size_t pos;
+};
+
 struct ReplaySource {
 	/*
     The source context data that is passed back and forth to OBS. As I understand it, each 
@@ -18,6 +27,9 @@ struct ReplaySource {
 
 	// handle back to self
 	obs_source_t *source;
+
+	int fd;
+	struct MmapIO mmap_io;
 
 	uint32_t width;
 	uint32_t height;
@@ -34,6 +46,9 @@ static void replay_source_update(void *data, obs_data_t *settings);
 static void replay_source_render(void *data, gs_effect_t *effect);
 static uint32_t replay_source_width(void *data);
 static uint32_t replay_source_height(void *data);
+
+static int mmap_read(void *opaque, uint8_t *buf, int buf_size);
+static int64_t mmap_seek(void *opaque, int64_t offset, int whence);
 
 bool register_replay_source()
 {
@@ -62,8 +77,6 @@ const static char *replay_source_name(void *unused)
 	return "Instant Replay";
 };
 
-// TODO: fill the rest of these in
-
 // https://github.com/leandromoreira/ffmpeg-libav-tutorial
 static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 {
@@ -72,20 +85,26 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 	ReplaySource *replay_source = new ReplaySource();
 	replay_source->source = source;
 
-	const char *file_path = "/home/zayd/Dev/obs-replay/test_files/gorilla.mkv"; // TODO: make configurable
+	const char *file_path = "/home/zayd/Dev/obs-replay/test_files/gorilla.mkv";
+
+	// mmap file
+	replay_source->fd = open(file_path, O_RDONLY);
+	struct stat st;
+	fstat(replay_source->fd, &st);
+	replay_source->mmap_io.base =
+		static_cast<uint8_t *>(mmap(nullptr, st.st_size, PROT_READ, MAP_PRIVATE, replay_source->fd, 0));
+	replay_source->mmap_io.size = st.st_size;
+
+	// custom AVIOContext for our mmaped scenario
+	uint8_t *avio_buf = static_cast<uint8_t *>(av_malloc(4096));
+	AVIOContext *avio_ctx =
+		avio_alloc_context(avio_buf, 4096, 0, &(replay_source->mmap_io), mmap_read, nullptr, mmap_seek);
 
 	// allocate format context, open file & get stream info
 	AVFormatContext *format_ctx = avformat_alloc_context();
-	char errbuf[AV_ERROR_MAX_STRING_SIZE] = {0};
-	int open_ret = avformat_open_input(&format_ctx, file_path, NULL, NULL);
-	if (open_ret < 0) {
-		// file is missing/unreadable (e.g. other machine) -- bail out instead of
-		// dereferencing the NULL'd context below
-		av_strerror(open_ret, errbuf, sizeof(errbuf));
-		blog(LOG_ERROR, "[replay-source] failed to open file '%s': %s", file_path, errbuf);
-		delete replay_source;
-		return nullptr;
-	}
+	format_ctx->pb = avio_ctx;
+	avformat_open_input(&format_ctx, "", nullptr,
+			    nullptr); // file is a nullptr because we pass it into the custom context earlier
 	avformat_find_stream_info(format_ctx, NULL);
 
 	// determine which codec to use and open it
@@ -135,6 +154,8 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 	// cleanup
 	avformat_close_input(&format_ctx);
 	avformat_free_context(format_ctx);
+	av_freep(&avio_ctx->buffer); // must be freed before the context
+	avio_context_free(&avio_ctx);
 	avcodec_free_context(&codec_ctx);
 	av_packet_free(&packet);
 
@@ -153,6 +174,10 @@ static void replay_source_destroy(void *data)
 		gs_texture_destroy(replay_source->tex);
 		obs_leave_graphics();
 	}
+
+	// mmap cleanup
+	munmap(replay_source->mmap_io.base, replay_source->mmap_io.size);
+	close(replay_source->fd);
 
 	delete replay_source;
 };
@@ -211,3 +236,33 @@ static uint32_t replay_source_height(void *data)
 	ReplaySource *replay_source = static_cast<ReplaySource *>(data);
 	return replay_source->height;
 };
+
+// AVIOContext functions
+static int mmap_read(void *opaque, uint8_t *buf, int buf_size)
+{
+	auto *io = static_cast<MmapIO *>(opaque);
+	size_t remaining = io->size - io->pos;
+	if (remaining == 0)
+		return AVERROR_EOF;
+
+	int n = std::min<size_t>(buf_size, remaining);
+	memcpy(buf, io->base + io->pos, n);
+	io->pos += n;
+	return n;
+}
+
+static int64_t mmap_seek(void *opaque, int64_t offset, int whence)
+{
+	auto *io = static_cast<MmapIO *>(opaque);
+	if (whence == AVSEEK_SIZE)
+		return io->size;
+
+	int64_t new_pos = (whence == SEEK_SET)   ? offset
+			  : (whence == SEEK_CUR) ? io->pos + offset
+			  : (whence == SEEK_END) ? io->size + offset
+						 : -1;
+	if (new_pos < 0 || (size_t)new_pos > io->size)
+		return -1;
+	io->pos = new_pos;
+	return new_pos;
+}

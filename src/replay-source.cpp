@@ -48,7 +48,7 @@ struct ReplaySource {
 	gs_texture_t *tex = nullptr;
 
 	std::mt19937 rand_gen;
-	std::uniform_int_distribution<> rand_dist;
+	std::uniform_int_distribution<int64_t> rand_dist;
 };
 
 static const char *replay_source_name(void *unused);
@@ -280,7 +280,9 @@ static bool decode_next_frame(ReplaySource *rs)
 	bool flushed = false;
 	static int frame_count = 0;
 
-	av_seek_frame(rs->format_ctx, rs->video_stream_index, rs->rand_dist(rs->rand_gen), SEEK_SET);
+	AVStream *vstream = rs->format_ctx->streams[rs->video_stream_index];
+	int64_t target_ts = av_rescale_q(rs->rand_dist(rs->rand_gen), AV_TIME_BASE_Q, vstream->time_base);
+	av_seek_frame(rs->format_ctx, rs->video_stream_index, target_ts, SEEK_SET);
 
 	while (true) {
 		int ret = avcodec_receive_frame(rs->codec_ctx, tmp);
@@ -367,7 +369,7 @@ static void open_random(ReplaySource *rs)
 {
 	std::random_device rd;
 	std::mt19937 gen(rd());
-	std::uniform_int_distribution<> dist(0, rs->format_ctx->duration);
+	std::uniform_int_distribution<int64_t> dist(0, rs->format_ctx->duration);
 
 	rs->rand_gen = gen;
 	rs->rand_dist = dist;

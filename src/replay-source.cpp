@@ -3,6 +3,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <obs-module.h>
+#include <iostream>
+#include <random>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -44,6 +46,9 @@ struct ReplaySource {
 
 	SwsContext *sws = nullptr;
 	gs_texture_t *tex = nullptr;
+
+	std::mt19937 rand_gen;
+	std::uniform_int_distribution<> rand_dist;
 };
 
 static const char *replay_source_name(void *unused);
@@ -65,6 +70,7 @@ static void open_format(ReplaySource *rs);
 static void open_codec(ReplaySource *rs);
 static void open_sws(ReplaySource *rs);
 static void open_texture(ReplaySource *rs);
+static void open_random(ReplaySource *rs);
 static bool decode_next_frame(ReplaySource *rs);
 
 // AVIOContext custom functions
@@ -113,6 +119,7 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 	open_codec(rs);
 	open_sws(rs);
 	open_texture(rs);
+	open_random(rs);
 
 	// decode the first frame so there's something to render
 	rs->frame = av_frame_alloc();
@@ -273,6 +280,8 @@ static bool decode_next_frame(ReplaySource *rs)
 	bool flushed = false;
 	static int frame_count = 0;
 
+	av_seek_frame(rs->format_ctx, rs->video_stream_index, rs->rand_dist(rs->rand_gen), SEEK_SET);
+
 	while (true) {
 		int ret = avcodec_receive_frame(rs->codec_ctx, tmp);
 
@@ -352,4 +361,14 @@ static void open_texture(ReplaySource *rs)
 	obs_enter_graphics();
 	rs->tex = gs_texture_create(rs->width, rs->height, GS_RGBA, 1, nullptr, GS_DYNAMIC);
 	obs_leave_graphics();
+}
+
+static void open_random(ReplaySource *rs)
+{
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_int_distribution<> dist(0, rs->format_ctx->duration);
+
+	rs->rand_gen = gen;
+	rs->rand_dist = dist;
 }

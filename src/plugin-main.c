@@ -108,9 +108,16 @@ bool obs_module_load(void)
 	obs_register_source(&replay_filter_info);
 	obs_register_source(&replay_filter_audio_info);
 	obs_register_source(&replay_filter_async_info);
+	obs_log(LOG_INFO, "registered Replay Source and capture filters");
+	return true;
+}
+
+void obs_module_post_load(void)
+{
 	if (!replay_dock_create())
 		obs_log(LOG_WARNING, "could not add the replay controls dock");
-	return true;
+	else
+		obs_log(LOG_INFO, "added the Replay Controls dock");
 }
 
 void obs_module_unload(void)

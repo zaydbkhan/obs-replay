@@ -16,6 +16,8 @@
 !LICENSE
 !README.md
 !UPSTREAM.md
+!dev.cmd
+!dev.ps1
 
 # Exclude lock files
 *.lock.json

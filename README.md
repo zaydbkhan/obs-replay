@@ -18,7 +18,33 @@ Capture source, duration, output path, filename, and automatic scene behavior re
 
 ## Building
 
-The project uses the current OBS plugin template and targets OBS Studio 31.1.1 with Qt 6. Configure and build with the platform preset:
+The project uses the current OBS plugin template and targets OBS Studio 31.1.1 with Qt 6.
+
+### Windows development
+
+Close OBS, then build, install to OBS's shared Windows plugin directory, and launch OBS with one command:
+
+```powershell
+.\dev.cmd
+```
+
+The script detects Visual Studio 2022 or 2026 and reuses an incremental build directory. Individual stages are also available:
+
+```powershell
+.\dev.cmd build
+.\dev.cmd install
+.\dev.cmd run
+```
+
+Windows asks for administrator approval only for the install step because OBS scans `%ProgramData%\obs-studio\plugins`. Building and launching OBS continue as the normal desktop user.
+
+Use `-Configuration Debug`, `RelWithDebInfo`, or `Release` to select a build configuration. If OBS is installed in a nonstandard location, pass `-ObsPath C:\path\to\obs64.exe`.
+
+Configuration is reused after the first build. Pass `-Reconfigure` after changing dependency versions or other CMake configuration inputs.
+
+### Platform presets
+
+The standard CMake presets remain available for CI and other platforms:
 
 ```powershell
 cmake --preset windows-x64

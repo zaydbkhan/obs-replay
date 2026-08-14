@@ -1,6 +1,7 @@
 #pragma once
 
 #include <obs.h>
+#include <stddef.h>
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -51,9 +52,19 @@ struct replay_control_snapshot {
 	bool saving;
 };
 
+struct replay_control_item {
+	int id;
+	int64_t in_ms;
+	int64_t out_ms;
+	int64_t duration_ms;
+	float speed_percent;
+};
+
 bool replay_control_is_source(const obs_source_t *source);
 bool replay_control_execute(obs_source_t *source, enum replay_control_action action);
 bool replay_control_get_snapshot(obs_source_t *source, struct replay_control_snapshot *snapshot);
+size_t replay_control_get_items(obs_source_t *source, struct replay_control_item *items, size_t capacity);
+bool replay_control_select_item(obs_source_t *source, int index);
 bool replay_control_set_time(obs_source_t *source, int64_t position_ms);
 
 #ifdef __cplusplus

@@ -2114,6 +2114,7 @@ static void replay_source_update(void *data, obs_data_t *settings)
 		replay_reverse_hotkey(context, 0, NULL, true);
 	}
 	context->sound_trigger = obs_data_get_bool(settings, SETTING_SOUND_TRIGGER);
+	context->filter_loaded = false;
 	if (!context->disabled) {
 
 		obs_source_t *s = NULL;
@@ -2127,23 +2128,32 @@ static void replay_source_update(void *data, obs_data_t *settings)
 				if ((obs_source_get_output_flags(s) & OBS_SOURCE_ASYNC) == OBS_SOURCE_ASYNC) {
 					context->source_filter = obs_source_create_private(
 						REPLAY_FILTER_ASYNC_ID, obs_source_get_name(context->source), settings);
-					blog(LOG_INFO, "[replay_source: '%s'] created async filter for '%s'",
-					     obs_source_get_name(context->source), context->source_name);
 				} else {
 					context->source_filter = obs_source_create_private(
 						REPLAY_FILTER_ID, obs_source_get_name(context->source), settings);
-					blog(LOG_INFO, "[replay_source: '%s'] created filter for '%s'",
-					     obs_source_get_name(context->source), context->source_name);
 				}
 				if (context->source_filter) {
-					obs_source_filter_add(s, context->source_filter);
+					obs_source_t *created_filter = context->source_filter;
+					obs_source_filter_add(s, created_filter);
+					if (obs_filter_get_parent(created_filter) == s) {
+						blog(LOG_INFO, "[replay_source: '%s'] created capture filter for '%s'",
+						     obs_source_get_name(context->source), context->source_name);
+					} else {
+						context->source_filter = NULL;
+						blog(LOG_ERROR, "[replay_source: '%s'] could not attach capture filter to '%s'",
+						     obs_source_get_name(context->source), context->source_name);
+					}
+					obs_source_release(created_filter);
+				} else {
+					blog(LOG_ERROR, "[replay_source: '%s'] could not create capture filter for '%s'",
+					     obs_source_get_name(context->source), context->source_name);
 				}
 			} else if (obs_obj_get_data(context->source_filter)) {
 				update_filter_settings(context->source_filter, settings);
 				blog(LOG_INFO, "[replay_source: '%s'] updated filter for '%s'",
 				     obs_source_get_name(context->source), context->source_name);
 			}
-			if (obs_obj_get_data(context->source_filter)) {
+			if (context->source_filter && obs_obj_get_data(context->source_filter)) {
 				((struct replay_filter *)obs_obj_get_data(context->source_filter))->threshold_data =
 					data;
 				((struct replay_filter *)obs_obj_get_data(context->source_filter))->trigger_threshold =
@@ -2154,6 +2164,9 @@ static void replay_source_update(void *data, obs_data_t *settings)
 			}
 
 			obs_source_release(s);
+		} else if (context->source_name && context->source_name[0]) {
+			blog(LOG_WARNING, "[replay_source: '%s'] video source '%s' was not found",
+			     obs_source_get_name(context->source), context->source_name);
 		}
 		s = NULL;
 		if (strcmp(context->source_audio_name, obs_source_get_name(context->source)) != 0) {
@@ -2170,14 +2183,24 @@ static void replay_source_update(void *data, obs_data_t *settings)
 					     obs_source_get_name(context->source), context->source_audio_name);
 				}
 				if (context->source_audio_filter) {
-					obs_source_filter_add(s, context->source_audio_filter);
+					obs_source_t *created_filter = context->source_audio_filter;
+					obs_source_filter_add(s, created_filter);
+					if (obs_filter_get_parent(created_filter) != s) {
+						context->source_audio_filter = NULL;
+						blog(LOG_ERROR, "[replay_source: '%s'] could not attach audio filter to '%s'",
+						     obs_source_get_name(context->source), context->source_audio_name);
+					}
+					obs_source_release(created_filter);
+				} else if ((obs_source_get_output_flags(s) & OBS_SOURCE_AUDIO) != 0) {
+					blog(LOG_ERROR, "[replay_source: '%s'] could not create audio filter for '%s'",
+					     obs_source_get_name(context->source), context->source_audio_name);
 				}
 			} else if (obs_obj_get_data(context->source_audio_filter)) {
 				update_filter_settings(context->source_audio_filter, settings);
 				blog(LOG_INFO, "[replay_source: '%s'] updated audio filter for '%s'",
 				     obs_source_get_name(context->source), context->source_audio_name);
 			}
-			if (obs_obj_get_data(context->source_audio_filter)) {
+			if (context->source_audio_filter && obs_obj_get_data(context->source_audio_filter)) {
 				((struct replay_filter *)obs_obj_get_data(context->source_audio_filter))
 					->threshold_data = data;
 				((struct replay_filter *)obs_obj_get_data(context->source_audio_filter))
@@ -2188,6 +2211,9 @@ static void replay_source_update(void *data, obs_data_t *settings)
 			}
 
 			obs_source_release(s);
+		} else if (context->source_audio_name && context->source_audio_name[0]) {
+			blog(LOG_WARNING, "[replay_source: '%s'] audio source '%s' was not found",
+			     obs_source_get_name(context->source), context->source_audio_name);
 		}
 	}
 	const char *file_format = obs_data_get_string(settings, SETTING_FILE_FORMAT);
@@ -2378,6 +2404,11 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 	context->next_n_frames_hotkey = obs_hotkey_register_source(source, "ReplaySource.NextNFrames",
 								   obs_module_text("NextNFrames"),
 								   replay_next_n_frames_hotkey, context);
+
+	/* libobs does not call .update for a newly-created source. Initialize
+	 * defaults and attach capture filters immediately when settings already
+	 * identify a source; .load will safely repeat this for scene collections. */
+	replay_source_update(context, settings);
 
 	return context;
 }
@@ -3325,6 +3356,57 @@ bool replay_control_get_snapshot(obs_source_t *source, struct replay_control_sna
 	snapshot->replay_index = snapshot->replay_count ? context->replay_position + 1 : 0;
 	pthread_mutex_unlock(&context->replay_mutex);
 
+	return true;
+}
+
+size_t replay_control_get_items(obs_source_t *source, struct replay_control_item *items, size_t capacity)
+{
+	if (!replay_control_is_source(source))
+		return 0;
+
+	struct replay_source *context = obs_obj_get_data(source);
+	if (!context)
+		return 0;
+
+	pthread_mutex_lock(&context->replay_mutex);
+	const size_t count = context->replays.size / sizeof(context->current_replay);
+	const size_t copy_count = items && capacity < count ? capacity : count;
+	for (size_t index = 0; items && index < copy_count; index++) {
+		const struct replay *replay =
+			circlebuf_data(&context->replays, index * sizeof(context->current_replay));
+		const int64_t duration = (int64_t)(replay->duration / MSEC_TO_NSEC);
+		const int64_t in = replay->trim_front > 0 ? replay->trim_front / MSEC_TO_NSEC : 0;
+		const int64_t trimmed_end = replay->trim_end > 0 ? replay->trim_end / MSEC_TO_NSEC : 0;
+		const int64_t out = duration > trimmed_end ? duration - trimmed_end : 0;
+
+		items[index].id = (int)index + 1;
+		items[index].in_ms = in;
+		items[index].out_ms = out > in ? out : in;
+		items[index].duration_ms = out > in ? out - in : 0;
+		items[index].speed_percent = context->speed_percent;
+	}
+	pthread_mutex_unlock(&context->replay_mutex);
+
+	return count;
+}
+
+bool replay_control_select_item(obs_source_t *source, int index)
+{
+	if (!replay_control_is_source(source))
+		return false;
+
+	struct replay_source *context = obs_obj_get_data(source);
+	if (!context)
+		return false;
+
+	pthread_mutex_lock(&context->replay_mutex);
+	const int count = (int)(context->replays.size / sizeof(context->current_replay));
+	pthread_mutex_unlock(&context->replay_mutex);
+	if (index < 0 || index >= count)
+		return false;
+
+	context->replay_position = index;
+	replay_update_position(context, true);
 	return true;
 }
 

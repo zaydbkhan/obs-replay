@@ -1,6 +1,7 @@
 /*
-Plugin Name
-Copyright (C) <Year> <Developer> <Email Address>
+Replay Source
+Copyright (C) 2018 Bas van Meel
+Copyright (C) 2026 Replay Source contributors
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by

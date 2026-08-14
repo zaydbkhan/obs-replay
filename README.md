@@ -1,59 +1,34 @@
-# OBS Plugin Template
+# Replay Source for OBS Studio
 
-## Introduction
+Replay Source captures recent audio and video from an OBS source in memory and plays it back at normal speed, in slow motion, or in reverse. This fork adds a native Replay Controls dock to the original Replay Source plugin.
 
-The plugin template is meant to be used as a starting point for OBS Studio plugin development. It includes:
+## Replay Controls dock
 
-* Boilerplate plugin source code
-* A CMake project file
-* GitHub Actions workflows and repository actions
+After adding at least one **Replay Source** in OBS, open **Docks → Replay Controls**. The dock lets you select a replay source and control it without reopening source properties:
 
-## Supported Build Environments
+- Load, save, remove, and clear replays
+- Navigate first, previous, next, and last replays
+- Play, pause, stop, restart, and seek
+- Change speed and direction
+- Step one or N frames
+- Trim the front or end of a replay
+- Enable or disable capture
 
-| Platform  | Tool   |
-|-----------|--------|
-| Windows   | Visual Studio 17 2022 |
-| macOS     | XCode 16.0 |
-| Windows, macOS  | CMake 3.30.5 |
-| Ubuntu 24.04 | CMake 3.28.3 |
-| Ubuntu 24.04 | `ninja-build` |
-| Ubuntu 24.04 | `pkg-config`
-| Ubuntu 24.04 | `build-essential` |
+Capture source, duration, output path, filename, and automatic scene behavior remain in the Replay Source properties.
 
-## Quick Start
+## Building
 
-An absolute bare-bones [Quick Start Guide](https://github.com/obsproject/obs-plugintemplate/wiki/Quick-Start-Guide) is available in the wiki.
+The project uses the current OBS plugin template and targets OBS Studio 31.1.1 with Qt 6. Configure and build with the platform preset:
 
-## Documentation
+```powershell
+cmake --preset windows-x64
+cmake --build --preset windows-x64
+```
 
-All documentation can be found in the [Plugin Template Wiki](https://github.com/obsproject/obs-plugintemplate/wiki).
+Equivalent `macos` and `ubuntu-x86_64` presets are included. Build dependencies are downloaded by the template bootstrap when they are not already present.
 
-Suggested reading to get up and running:
+## Compatibility and attribution
 
-* [Getting started](https://github.com/obsproject/obs-plugintemplate/wiki/Getting-Started)
-* [Build system requirements](https://github.com/obsproject/obs-plugintemplate/wiki/Build-System-Requirements)
-* [Build system options](https://github.com/obsproject/obs-plugintemplate/wiki/CMake-Build-System-Options)
+Source IDs, setting keys, and hotkey IDs are retained from Replay Source 1.8.1 so existing OBS scene collections remain compatible. See [UPSTREAM.md](UPSTREAM.md) for the imported revision and file-level provenance.
 
-## GitHub Actions & CI
-
-Default GitHub Actions workflows are available for the following repository actions:
-
-* `push`: Run for commits or tags pushed to `master` or `main` branches.
-* `pr-pull`: Run when a Pull Request has been pushed or synchronized.
-* `dispatch`: Run when triggered by the workflow dispatch in GitHub's user interface.
-* `build-project`: Builds the actual project and is triggered by other workflows.
-* `check-format`: Checks CMake and plugin source code formatting and is triggered by other workflows.
-
-The workflows make use of GitHub repository actions (contained in `.github/actions`) and build scripts (contained in `.github/scripts`) which are not needed for local development, but might need to be adjusted if additional/different steps are required to build the plugin.
-
-### Retrieving build artifacts
-
-Successful builds on GitHub Actions will produce build artifacts that can be downloaded for testing. These artifacts are commonly simple archives and will not contain package installers or installation programs.
-
-### Building a Release
-
-To create a release, an appropriately named tag needs to be pushed to the `main`/`master` branch using semantic versioning (e.g., `12.3.4`, `23.4.5-beta2`). A draft release will be created on the associated repository with generated installer packages or installation programs attached as release artifacts.
-
-## Signing and Notarizing on macOS
-
-Basic concepts of codesigning and notarization on macOS are explained in the correspodning [Wiki article](https://github.com/obsproject/obs-plugintemplate/wiki/Codesigning-On-macOS) which has a specific section for the [GitHub Actions setup](https://github.com/obsproject/obs-plugintemplate/wiki/Codesigning-On-macOS#setting-up-code-signing-for-github-actions).
+This project is licensed under GPL-2.0.

@@ -50,9 +50,9 @@ struct ReplaySource {
 	std::mt19937 rand_gen;
 	std::uniform_int_distribution<int64_t> rand_dist;
 
-    uint8_t *rgba_data[4];
-    int rgba_linesize[4];
-    bool buffer_allocated = false;
+	uint8_t *rgba_data[4];
+	int rgba_linesize[4];
+	bool buffer_allocated = false;
 };
 
 static const char *replay_source_name(void *unused);
@@ -117,8 +117,7 @@ static void *replay_source_create(obs_data_t *settings, obs_source_t *source)
 	rs->source = source;
 
 	//const char *file_path = "/home/zayd/Dev/obs-replay/test_files/northernlion.mkv";
-    const char *file_path = "/Users/isaackhabra/Documents/Programming/projects/obs_replay/test/all_intra.mkv";
-
+	const char *file_path = "/Users/isaackhabra/Documents/Programming/projects/obs_replay/test/all_intra.mkv";
 
 	open_input(rs, file_path);
 	open_format(rs);
@@ -160,8 +159,7 @@ static void replay_source_destroy(void *data)
 	// mmap cleanup
 	munmap(rs->mmap_io.base, rs->mmap_io.size);
 	close(rs->fd);
-    av_freep(&(rs->rgba_data[0]));
-
+	av_freep(&(rs->rgba_data[0]));
 
 	delete rs;
 };
@@ -193,11 +191,13 @@ static void replay_source_render(void *data, gs_effect_t *effect)
 	if (!rs->frame || !rs->frame->data[0])
 		return;
 
-	if(!rs->buffer_allocated) {
-	    av_image_alloc(rs->rgba_data, rs->rgba_linesize, rs->frame->width, rs->frame->height, AV_PIX_FMT_RGBA, 1);
-        rs->buffer_allocated = true;
-    }
-	sws_scale(rs->sws, rs->frame->data, rs->frame->linesize, 0, rs->frame->height, rs->rgba_data, rs->rgba_linesize);
+	if (!rs->buffer_allocated) {
+		av_image_alloc(rs->rgba_data, rs->rgba_linesize, rs->frame->width, rs->frame->height, AV_PIX_FMT_RGBA,
+			       1);
+		rs->buffer_allocated = true;
+	}
+	sws_scale(rs->sws, rs->frame->data, rs->frame->linesize, 0, rs->frame->height, rs->rgba_data,
+		  rs->rgba_linesize);
 	gs_texture_set_image(rs->tex, rs->rgba_data[0], rs->rgba_linesize[0], false);
 
 	// OBS has already begun the effect's "Draw" technique before calling
@@ -291,23 +291,22 @@ static bool decode_next_frame(ReplaySource *rs)
 	AVStream *vstream = rs->format_ctx->streams[rs->video_stream_index];
 	int64_t target_ts = av_rescale_q(rs->rand_dist(rs->rand_gen), AV_TIME_BASE_Q, vstream->time_base);
 
-
-    // clear errors and eof reached before 
-    if (rs->format_ctx->pb) {
-        rs->format_ctx->pb->error = 0;
-        rs->format_ctx->pb->eof_reached = 0;
-    }
+	// clear errors and eof reached before
+	if (rs->format_ctx->pb) {
+		rs->format_ctx->pb->error = 0;
+		rs->format_ctx->pb->eof_reached = 0;
+	}
 
 	int seek_ret = av_seek_frame(rs->format_ctx, rs->video_stream_index, target_ts, SEEK_SET);
 
-    if(seek_ret < 0) {
-        obs_log(LOG_WARNING, "Random seek failed, returning to 0");
-        rs->format_ctx->pb->error = 0;
-        rs->format_ctx->pb->eof_reached = 0; 
-        av_seek_frame(rs->format_ctx, rs->video_stream_index, 0, SEEK_SET);
-    }
+	if (seek_ret < 0) {
+		obs_log(LOG_WARNING, "Random seek failed, returning to 0");
+		rs->format_ctx->pb->error = 0;
+		rs->format_ctx->pb->eof_reached = 0;
+		av_seek_frame(rs->format_ctx, rs->video_stream_index, 0, SEEK_SET);
+	}
 
-    avcodec_flush_buffers(rs->codec_ctx);
+	avcodec_flush_buffers(rs->codec_ctx);
 
 	while (true) {
 		int ret = avcodec_receive_frame(rs->codec_ctx, tmp);
@@ -324,12 +323,11 @@ static bool decode_next_frame(ReplaySource *rs)
 		if (ret == AVERROR_EOF)
 			break; // codec fully drained -- no more frames
 
-
-        if (ret < 0 && ret != AVERROR(EAGAIN)) {
-            // Break on other errors that are not normal
-            obs_log(LOG_WARNING, "Decoder returned error: %d, skipping...", ret);
-            break;
-        }
+		if (ret < 0 && ret != AVERROR(EAGAIN)) {
+			// Break on other errors that are not normal
+			obs_log(LOG_WARNING, "Decoder returned error: %d, skipping...", ret);
+			break;
+		}
 		// EAGAIN -- feed the codec more data. receive_frame can stay EAGAIN
 		// across several packets (B-frames, etc.), so keep reading until a
 		// frame actually comes out
@@ -338,11 +336,10 @@ static bool decode_next_frame(ReplaySource *rs)
 			if (!flushed) {
 				avcodec_send_packet(rs->codec_ctx, NULL);
 				flushed = true;
+			} else {
+				// Already flushed and still hitting EOF, error
+				break;
 			}
-            else {
-                // Already flushed and still hitting EOF, error
-                break;
-            }
 			continue;
 		}
 
@@ -372,8 +369,8 @@ static int64_t mmap_seek(void *opaque, int64_t offset, int whence)
 {
 	auto *io = static_cast<MmapIO *>(opaque);
 
-    whence &= ~AVSEEK_FORCE;
-    
+	whence &= ~AVSEEK_FORCE;
+
 	if (whence == AVSEEK_SIZE)
 		return io->size;
 

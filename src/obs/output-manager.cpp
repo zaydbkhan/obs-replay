@@ -1,7 +1,7 @@
 #include "output-manager.h"
 
 /**
- * Responsible for giving the sources what should literally be shown on screen. Translates between
- * library internals and simple data to be output. The hope is that different framerates,
- * resolutions, etc. are magically handled here.
+ * Responsible for giving the sources what should literally be shown on screen; translates between
+ * library internals and simple output data. Expected to be where framerate/resolution differences
+ * between sources get normalized.
  */

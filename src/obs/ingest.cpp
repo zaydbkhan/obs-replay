@@ -1,6 +1,6 @@
 #include "ingest.h"
 
 /**
- * Manages the OBS side of things for our writers, including creating/destroying them when a
- * source changes, etc.
+ * Manages the OBS side of things for our writers, including calling the API when a
+ * source changes, passing through obs video data, etc.
  */

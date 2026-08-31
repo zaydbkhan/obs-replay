@@ -35,7 +35,29 @@ if(ENABLE_QT)
   )
 endif()
 
-target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/plugin-main.c)
+target_sources(
+  ${CMAKE_PROJECT_NAME}
+  PRIVATE
+    src/plugin-main.c
+    src/core/api.cpp
+    src/core/editor-state.cpp
+    src/core/output-manager.cpp
+    src/core/packet-sidecar.cpp
+    src/core/preview-state.cpp
+    src/core/replay-manager.cpp
+    src/core/segment-file.cpp
+    src/core/timeline.cpp
+    src/core/write-manager.cpp
+    src/core/writer.cpp
+    src/obs/channel-a.cpp
+    src/obs/channel-b.cpp
+    src/obs/dock.cpp
+    src/obs/editor-source.cpp
+    src/obs/ingest.cpp
+    src/obs/preview-source.cpp
+    src/obs/router.cpp
+    src/obs/transition.cpp
+)
 
 set_target_properties_plugin(${CMAKE_PROJECT_NAME} PROPERTIES OUTPUT_NAME ${_name})
 

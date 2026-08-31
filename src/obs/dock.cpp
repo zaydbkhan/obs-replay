@@ -1,4 +1,4 @@
-#include "dock-ui.h"
+#include "dock.h"
 
 /**
  * OBS dock UI panel for controlling replay and editor playback.

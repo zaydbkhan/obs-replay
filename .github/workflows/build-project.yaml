@@ -217,6 +217,14 @@ jobs:
           target: x86_64
           config: ${{ needs.check-event.outputs.config }}
 
+      - name: Configure and Run Unit Tests 🧪
+        run: |
+          : Configure and Run Unit Tests 🧪
+          if [[ "${RUNNER_DEBUG}" ]]; then set -x; fi
+          cmake -S . -B build_x86_64 -DENABLE_TESTS=ON
+          cmake --build build_x86_64 --target unit-tests --parallel
+          ctest --test-dir build_x86_64 --output-on-failure
+
       - name: Package Plugin 📀
         uses: ./.github/actions/package-plugin
         with:

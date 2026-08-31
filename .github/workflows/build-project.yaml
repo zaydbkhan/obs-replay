@@ -142,6 +142,15 @@ jobs:
           codesign: ${{ fromJSON(needs.check-event.outputs.codesign) }}
           codesignIdent: ${{ steps.codesign.outputs.codesignIdent }}
 
+      - name: Configure and Run Unit Tests 🧪
+        run: |
+          : Configure and Run Unit Tests 🧪
+          if (( ${+RUNNER_DEBUG} )) setopt XTRACE
+
+          cmake -S . -B build_macos -DENABLE_TESTS=ON
+          cmake --build build_macos --target unit-tests --config ${{ needs.check-event.outputs.config }}
+          ctest --test-dir build_macos -C ${{ needs.check-event.outputs.config }} --output-on-failure
+
       - name: Package Plugin 📀
         uses: ./.github/actions/package-plugin
         with:
@@ -290,6 +299,17 @@ jobs:
         with:
           target: x64
           config: ${{ needs.check-event.outputs.config }}
+
+      - name: Configure and Run Unit Tests 🧪
+        run: |
+          # Configure and Run Unit Tests 🧪
+          if ( $Env:RUNNER_DEBUG -ne $null ) {
+            Set-PSDebug -Trace 1
+          }
+
+          cmake -S . -B build_x64 -DENABLE_TESTS=ON
+          cmake --build build_x64 --target unit-tests --config ${{ needs.check-event.outputs.config }}
+          ctest --test-dir build_x64 -C ${{ needs.check-event.outputs.config }} --output-on-failure
 
       - name: Package Plugin 📀
         uses: ./.github/actions/package-plugin

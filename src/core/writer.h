@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include "segment-file.h"
 
 // Writers
 /**
@@ -17,8 +17,8 @@ enum WriterType {
 
 struct Writer {
 	WriterType type;
-	uint32_t source_id;
+	SegmentFile *current_segment;
 };
 
-Writer *writer_create(WriterType type, uint32_t source_id);
+Writer *writer_create(WriterType type);
 void writer_destroy(Writer *writer);

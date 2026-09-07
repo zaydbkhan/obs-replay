@@ -1,13 +1,29 @@
 #include "api.h"
 
+#include "write-manager.h"
+
 /**
  * Translation layer between the rest of the app and OBS, giving callers like the router a stable,
  * testable surface instead of talking to OBS directly.
  */
 
-void obs_replay_core_init() {}
+struct Core {
+	WriteManager *write_manager;
+};
 
-void obs_replay_core_destroy() {}
+static struct Core *core = nullptr;
+
+void obs_replay_core_init()
+{
+	core = new Core{};
+	core->write_manager = write_manager_create();
+}
+
+void obs_replay_core_destroy()
+{
+	write_manager_destroy(core->write_manager);
+	delete core;
+}
 
 void api_start_recording() {}
 

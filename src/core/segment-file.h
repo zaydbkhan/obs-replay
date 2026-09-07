@@ -13,7 +13,8 @@
 struct SegmentFile {
 	std::string path;
 	uint64_t start_timestamp;
+	uint64_t end_timestamp;
 };
 
-SegmentFile *segment_file_create(const std::string &path, uint64_t start_timestamp);
+SegmentFile *segment_file_create(const std::string &path);
 void segment_file_destroy(SegmentFile *segment_file);

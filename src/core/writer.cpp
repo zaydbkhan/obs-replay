@@ -7,9 +7,14 @@
  * timeline API.
  */
 
-Writer *writer_create(WriterType type, uint32_t source_id)
+Writer *writer_create(WriterType type)
 {
-	return nullptr;
+	Writer *writer = new Writer{};
+	writer->current_segment = segment_file_create("/home/zayd/Dev/obs-replay/test_files/test.fmp4");
 }
 
-void writer_destroy(Writer *writer) {}
+void writer_destroy(Writer *writer)
+{
+	segment_file_destroy(writer->current_segment);
+	delete writer;
+}

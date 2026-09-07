@@ -1,8 +1,19 @@
 #pragma once
 
+#include <cstdint>
+#include <string>
+
 // Files / Segments
 /**
  * The literal files that the writers write to, and everything else reads from. Will have some
  * sort of consistent naming convention TBA, and if things get slow we can add some additional
  * infrastructure to reduce syscalls (but that's unlikely to be the main slowdown).
  */
+
+struct SegmentFile {
+	std::string path;
+	uint64_t start_timestamp; // From the timeline API, when this segment began.
+};
+
+SegmentFile *segment_file_create(const std::string &path, uint64_t start_timestamp);
+void segment_file_destroy(SegmentFile *segment_file);

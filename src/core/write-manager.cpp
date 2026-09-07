@@ -9,11 +9,7 @@
 
 WriteManager *write_manager_create()
 {
-	// TODO: create the video and audio writers.
 	return nullptr;
 }
 
-void write_manager_destroy(WriteManager *write_manager)
-{
-	// TODO: destroy the writers, then the manager.
-}
+void write_manager_destroy(WriteManager *write_manager) {}

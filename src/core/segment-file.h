@@ -12,7 +12,7 @@
 
 struct SegmentFile {
 	std::string path;
-	uint64_t start_timestamp; // From the timeline API, when this segment began.
+	uint64_t start_timestamp;
 };
 
 SegmentFile *segment_file_create(const std::string &path, uint64_t start_timestamp);

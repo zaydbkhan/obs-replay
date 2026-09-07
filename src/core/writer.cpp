@@ -9,11 +9,7 @@
 
 Writer *writer_create(WriterType type, uint32_t source_id)
 {
-	// TODO: spin up the writer thread, its internal queue, and its first segment.
 	return nullptr;
 }
 
-void writer_destroy(Writer *writer)
-{
-	// TODO: drain the queue, finalize the open segment, and join the thread.
-}
+void writer_destroy(Writer *writer) {}

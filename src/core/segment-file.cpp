@@ -6,9 +6,12 @@
  * infrastructure to reduce syscalls (but that's unlikely to be the main slowdown).
  */
 
-SegmentFile *segment_file_create(const std::string &path, uint64_t start_timestamp)
+SegmentFile *segment_file_create([[maybe_unused]] const std::string &path, [[maybe_unused]] uint64_t start_timestamp)
 {
 	return nullptr;
 }
 
-void segment_file_destroy(SegmentFile *segment_file) {}
+void segment_file_destroy([[maybe_unused]] SegmentFile *segment_file)
+{
+	delete segment_file;
+}

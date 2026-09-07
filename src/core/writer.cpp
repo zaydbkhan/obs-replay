@@ -10,7 +10,9 @@
 Writer *writer_create(WriterType type)
 {
 	Writer *writer = new Writer{};
+	writer->type = type;
 	writer->current_segment = segment_file_create("/home/zayd/Dev/obs-replay/test_files/test.fmp4");
+	return writer;
 }
 
 void writer_destroy(Writer *writer)

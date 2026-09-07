@@ -1,4 +1,4 @@
-#include "segment-file.h"
+#include "segment.h"
 
 /**
  * The literal files that the writers write to, and everything else reads from. Will have some
@@ -6,12 +6,12 @@
  * infrastructure to reduce syscalls (but that's unlikely to be the main slowdown).
  */
 
-SegmentFile *segment_file_create([[maybe_unused]] const std::string &path, [[maybe_unused]] uint64_t start_timestamp)
+Segment *segment_create([[maybe_unused]] const std::string &path, [[maybe_unused]] uint64_t start_timestamp)
 {
 	return nullptr;
 }
 
-void segment_file_destroy([[maybe_unused]] SegmentFile *segment_file)
+void segment_destroy([[maybe_unused]] Segment *segment)
 {
-	delete segment_file;
+	delete segment;
 }

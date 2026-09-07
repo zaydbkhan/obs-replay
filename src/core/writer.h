@@ -1,6 +1,6 @@
 #pragma once
 
-#include "segment-file.h"
+#include "segment.h"
 
 // Writers
 /**
@@ -17,7 +17,7 @@ enum WriterType {
 
 struct Writer {
 	WriterType type;
-	SegmentFile *current_segment;
+	Segment *current_segment;
 };
 
 Writer *writer_create(WriterType type);

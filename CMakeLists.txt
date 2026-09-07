@@ -45,7 +45,7 @@ target_sources(
     src/core/packet-sidecar.cpp
     src/core/preview-state.cpp
     src/core/replay-manager.cpp
-    src/core/segment-file.cpp
+    src/core/segment.cpp
     src/core/timeline.cpp
     src/core/write-manager.cpp
     src/core/writer.cpp

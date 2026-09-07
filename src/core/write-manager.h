@@ -14,4 +14,4 @@ struct WriteManager {
 };
 
 WriteManager *write_manager_create();
-void write_manager_destroy(WriteManager *write_manager);
+void write_manager_destroy(WriteManager *manager);

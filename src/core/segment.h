@@ -16,5 +16,5 @@ struct Segment {
 	uint64_t end_timestamp;
 };
 
-Segment *segment_create(const std::string &path);
+Segment *segment_create(const std::string &path, uint64_t start_timestamp);
 void segment_destroy(Segment *segment);

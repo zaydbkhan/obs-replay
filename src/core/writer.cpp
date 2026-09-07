@@ -11,7 +11,7 @@ Writer *writer_create(WriterType type)
 {
 	Writer *writer = new Writer{};
 	writer->type = type;
-	writer->current_segment = segment_create("/home/zayd/Dev/obs-replay/test_files/test.fmp4");
+	writer->current_segment = segment_create("/home/zayd/Dev/obs-replay/test_files/test.fmp4", 0);
 	return writer;
 }
 

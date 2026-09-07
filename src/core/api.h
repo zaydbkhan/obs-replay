@@ -13,7 +13,7 @@ void obs_replay_core_init();
 void obs_replay_core_destroy();
 
 /** Starts all writers recording. */
-void api_start_recording();
+void obs_replay_core_start_recording();
 
 /** Stops all writers recording, finalizing the current segment. */
-void api_stop_recording();
+void obs_replay_core_stop_recording();

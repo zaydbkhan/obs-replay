@@ -25,6 +25,6 @@ void obs_replay_core_destroy()
 	delete core;
 }
 
-void api_start_recording() {}
+void obs_replay_core_start_recording() {}
 
-void api_stop_recording() {}
+void obs_replay_core_stop_recording() {}

@@ -8,6 +8,7 @@
  */
 
 struct Ingest {
+	obs_source_t *source;
 	obs_view_t *view;
 	video_t *video;
 };
@@ -24,7 +25,8 @@ Ingest *ingest_create()
 	auto *ingest = new Ingest{};
 
 	obs_source_t *source = nullptr;
-	obs_enum_sources(get_first_source_callback, source);
+	obs_enum_sources(get_first_source_callback, &source);
+	ingest->source = source;
 
 	obs_video_info video_info;
 	obs_get_video_info(&video_info);
@@ -42,5 +44,6 @@ Ingest *ingest_create()
 void ingest_destroy(Ingest *ingest)
 {
 	obs_view_destroy(ingest->view);
+	obs_source_release(ingest->source);
 	delete ingest;
 }

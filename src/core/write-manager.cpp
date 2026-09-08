@@ -21,3 +21,8 @@ void write_manager_destroy(WriteManager *manager)
 	writer_destroy(manager->audio_writer);
 	delete manager;
 }
+
+void submit_frame([[maybe_unused]] WriteManager *manager)
+{
+	return;
+}

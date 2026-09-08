@@ -20,3 +20,8 @@ void writer_destroy(Writer *writer)
 	segment_destroy(writer->current_segment);
 	delete writer;
 }
+
+void submit_frame([[maybe_unused]] Writer *writer)
+{
+	return;
+}

@@ -22,3 +22,5 @@ struct Writer {
 
 Writer *writer_create(WriterType type);
 void writer_destroy(Writer *writer);
+
+void submit_frame([[maybe_unused]] Writer *writer);

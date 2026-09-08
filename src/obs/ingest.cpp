@@ -2,6 +2,8 @@
 
 #include <obs.h>
 
+#include "core/obs-replay-api.h"
+
 /**
  * Manages the OBS side of things for our writers, including calling the API when a
  * source changes, passing through obs video data, etc.
@@ -18,6 +20,11 @@ bool get_first_source_callback(void *data, obs_source_t *source)
 	auto **to_assign = static_cast<obs_source_t **>(data);
 	*to_assign = obs_source_get_ref(source);
 	return false;
+}
+
+void api_submission_callback(void *data, struct video_data *frame)
+{
+	obs_replay_submit_frame(frame);
 }
 
 Ingest *ingest_create()
@@ -37,6 +44,8 @@ Ingest *ingest_create()
 
 	ingest->view = obs_view_create();
 	ingest->video = obs_view_add2(ingest->view, &video_info);
+
+	video_output_connect(ingest->video, nullptr, api_submission_callback, nullptr);
 
 	return ingest;
 }

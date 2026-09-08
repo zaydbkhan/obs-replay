@@ -21,4 +21,4 @@ void obs_replay_core_start_recording();
 void obs_replay_core_stop_recording();
 
 /** Submit a frame to the writer. */
-void obs_replay_submit_frame([[maybe_unused]] video_data frame_data);
+void obs_replay_submit_frame([[maybe_unused]] video_data *frame_data);

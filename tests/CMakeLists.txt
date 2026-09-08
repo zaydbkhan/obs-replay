@@ -12,7 +12,10 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(googletest)
 
 add_executable(unit-tests)
-target_sources(unit-tests PRIVATE smoke-test.cpp)
+target_sources(
+  unit-tests
+  PRIVATE smoke-test.cpp timeline-test.cpp ${PROJECT_SOURCE_DIR}/src/core/timeline.cpp)
+target_include_directories(unit-tests PRIVATE ${PROJECT_SOURCE_DIR}/src/core)
 target_link_libraries(unit-tests PRIVATE GTest::gtest_main)
 
 include(GoogleTest)

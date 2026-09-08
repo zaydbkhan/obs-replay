@@ -39,7 +39,7 @@ target_sources(
   ${CMAKE_PROJECT_NAME}
   PRIVATE
     src/obs-replay.c
-    src/core/api.cpp
+    src/core/obs-replay-api.cpp
     src/core/editor-state.cpp
     src/core/output-manager.cpp
     src/core/packet-sidecar.cpp

@@ -1,4 +1,4 @@
-#include "api.h"
+#include "obs-replay-api.h"
 
 #include "write-manager.h"
 

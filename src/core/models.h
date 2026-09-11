@@ -7,7 +7,7 @@
  * Plain data structures that cross the API boundary.
  */
 
-#define MAX_PLANES 4
+#define MAX_PLANES 8
 
 enum PixelFormat {
 	PIXEL_FORMAT_I420,

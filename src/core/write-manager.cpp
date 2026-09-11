@@ -24,5 +24,6 @@ void write_manager_destroy(WriteManager *manager)
 
 void submit_frame([[maybe_unused]] WriteManager *manager)
 {
+
 	return;
 }

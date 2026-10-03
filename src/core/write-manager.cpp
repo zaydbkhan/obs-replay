@@ -21,6 +21,11 @@ void write_manager_destroy(WriteManager *manager)
 	delete manager;
 }
 
+void write_manager_update_source(WriteManager *manager, const VideoInfo *info)
+{
+	writer_update_source(manager->video_writer, info);
+}
+
 void submit_frame([[maybe_unused]] WriteManager *manager)
 {
 	return;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 // Models
@@ -15,11 +16,29 @@ enum PixelFormat {
 	PIXEL_FORMAT_RGBA,
 };
 
-struct Frame {
-	uint64_t timestamp_ns; // recording-relative (from the timeline)
+enum VideoCodec {
+	VIDEO_CODEC_H264,
+	VIDEO_CODEC_HEVC,
+	VIDEO_CODEC_AV1,
+};
+
+struct VideoInfo {
 	uint32_t width;
 	uint32_t height;
 	enum PixelFormat format;
+	enum VideoCodec codec;
+	const uint8_t *extra_data;
+	size_t extra_data_size;
+};
+
+struct Frame {
+	uint64_t timestamp_ns; // recording-relative (from the timeline)
 	const uint8_t *data[MAX_PLANES];
 	uint32_t linesize[MAX_PLANES];
+};
+
+struct Packet {
+	uint64_t timestamp_ns; // recording-relative (from the timeline)
+	const uint8_t *data;
+	size_t size;
 };

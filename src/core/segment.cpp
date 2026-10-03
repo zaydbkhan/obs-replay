@@ -6,12 +6,9 @@
  * infrastructure to reduce syscalls (but that's unlikely to be the main slowdown).
  */
 
-Segment *segment_create([[maybe_unused]] const std::string &path, [[maybe_unused]] uint64_t start_timestamp)
+Segment *segment_create(const std::string &path, uint64_t start_timestamp)
 {
-    Segment* ret;
-    ret->start_timestamp = start_timestamp;
-    ret->path = path;
-	return nullptr;
+	return new Segment{path, start_timestamp};
 }
 
 void segment_destroy([[maybe_unused]] Segment *segment)

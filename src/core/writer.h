@@ -32,5 +32,6 @@ Writer *writer_create(WriterType type, int ordinal);
 void writer_destroy(Writer *writer);
 
 AVFormatContext* init_segmented_writer(bool is_video, AVCodecParameters *obs_codec_params);
+void writer_update_source(Writer *writer, const VideoInfo *info);
 
 void submit_frame([[maybe_unused]] Writer *writer);

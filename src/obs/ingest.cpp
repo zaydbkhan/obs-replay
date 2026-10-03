@@ -22,7 +22,7 @@ bool get_first_source_callback(void *data, obs_source_t *source)
 	return false;
 }
 
-void api_submission_callback(void *data, struct video_data *frame)
+void api_submission_callback([[maybe_unused]] void *data, struct video_data *frame)
 {
 	obs_replay_submit_frame(frame);
 }
@@ -41,9 +41,11 @@ Ingest *ingest_create()
 	video_info.base_width = obs_source_get_width(source);
 	video_info.output_height = video_info.base_height;
 	video_info.output_width = video_info.base_width;
+	video_info.output_format = VIDEO_FORMAT_NV12;
 
 	ingest->view = obs_view_create();
 	ingest->video = obs_view_add2(ingest->view, &video_info);
+	obs_replay_update_source(ingest->video);
 
 	video_output_connect(ingest->video, nullptr, api_submission_callback, nullptr);
 

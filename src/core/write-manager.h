@@ -7,6 +7,7 @@
  */
 
 struct Writer;
+struct VideoInfo;
 
 struct WriteManager {
 	Writer *video_writer;
@@ -24,3 +25,6 @@ void submit_frame([[maybe_unused]] WriteManager *manager);
 // We will just take in the path from some other part of the program, probably the API
 // Returns whether there was a path passed in or not
 bool determine_output_directory(std::string path);
+void write_manager_update_source(WriteManager *manager, const VideoInfo *info);
+
+void submit_frame([[maybe_unused]] WriteManager *manager);

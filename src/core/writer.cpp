@@ -40,7 +40,11 @@ AVFormatContext* init_segmented_fmp4_writer(std::string base_file_name, bool is_
 
     avio_open(&fmt_ctx->pb, base_file_name.c_str(), AVIO_FLAG_WRITE);
     avformat_write_header(fmt_ctx, &opt);
+}
 
+void writer_update_source(Writer *writer, const VideoInfo *info)
+{
+	writer->current_segment->video_info = *info;
 }
 
 void submit_frame([[maybe_unused]] Writer *writer)

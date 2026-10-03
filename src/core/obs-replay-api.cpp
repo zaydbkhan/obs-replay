@@ -1,6 +1,6 @@
 #include "obs-replay-api.h"
 
-#include <chrono>
+#include <util/platform.h>
 
 #include "models.h"
 #include "timeline.h"
@@ -18,16 +18,15 @@ struct Core {
 
 static struct Core *core = nullptr;
 
-uint64_t system_clock(void *data)
+uint64_t obs_clock(void *data)
 {
-	using namespace std::chrono;
-	return duration_cast<nanoseconds>(steady_clock::now().time_since_epoch()).count();
+	return os_gettime_ns();
 }
 
 void obs_replay_core_init()
 {
 	core = new Core{};
-	core->timeline = timeline_create(system_clock, nullptr);
+	core->timeline = timeline_create(obs_clock, nullptr);
 	core->write_manager = write_manager_create();
 }
 

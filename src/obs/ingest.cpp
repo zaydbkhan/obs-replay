@@ -41,6 +41,7 @@ Ingest *ingest_create()
 	video_info.base_width = obs_source_get_width(source);
 	video_info.output_height = video_info.base_height;
 	video_info.output_width = video_info.base_width;
+	video_info.output_format = VIDEO_FORMAT_NV12;
 
 	ingest->view = obs_view_create();
 	ingest->video = obs_view_add2(ingest->view, &video_info);

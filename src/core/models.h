@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 // Models
@@ -25,4 +26,10 @@ struct Frame {
 	uint64_t timestamp_ns; // recording-relative (from the timeline)
 	const uint8_t *data[MAX_PLANES];
 	uint32_t linesize[MAX_PLANES];
+};
+
+struct Packet {
+	uint64_t timestamp_ns; // recording-relative (from the timeline)
+	const uint8_t *data;
+	size_t size;
 };

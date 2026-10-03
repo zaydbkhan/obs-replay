@@ -1,5 +1,6 @@
 #pragma once
 
+#include "models.h"
 #include "segment.h"
 
 // Writers
@@ -18,9 +19,12 @@ enum WriterType {
 struct Writer {
 	WriterType type;
 	Segment *current_segment;
+	VideoInfo video_info;
 };
 
 Writer *writer_create(WriterType type);
 void writer_destroy(Writer *writer);
+
+void writer_update_source(Writer *writer, const VideoInfo *info);
 
 void submit_frame([[maybe_unused]] Writer *writer);

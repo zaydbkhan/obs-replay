@@ -1,7 +1,5 @@
 #pragma once
 
-#include "models.h"
-
 // Write Manager
 /**
  * Thin manager that owns the Writers and coordinates the multi-threading around them, keeping
@@ -9,11 +7,11 @@
  */
 
 struct Writer;
+struct VideoInfo;
 
 struct WriteManager {
 	Writer *video_writer;
 	Writer *audio_writer;
-	VideoInfo video_info;
 };
 
 WriteManager *write_manager_create();

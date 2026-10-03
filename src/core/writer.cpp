@@ -21,6 +21,11 @@ void writer_destroy(Writer *writer)
 	delete writer;
 }
 
+void writer_update_source(Writer *writer, const VideoInfo *info)
+{
+	writer->video_info = *info;
+}
+
 void submit_frame([[maybe_unused]] Writer *writer)
 {
 	return;

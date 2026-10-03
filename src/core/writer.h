@@ -1,6 +1,9 @@
 #pragma once
 
 #include "segment.h"
+#include <libavformat/avformat.h>
+
+#define SEGMENT_FILE_NAME_BASE "replay_source_"
 
 // Writers
 /**
@@ -10,6 +13,7 @@
  * timeline API.
  */
 
+
 enum WriterType {
 	WRITER_VIDEO,
 	WRITER_AUDIO,
@@ -18,9 +22,14 @@ enum WriterType {
 struct Writer {
 	WriterType type;
 	Segment *current_segment;
+    // Which source slot this writer corresponds to basically
+    int ordinal;
 };
 
-Writer *writer_create(WriterType type);
+Writer *writer_create(WriterType type, int ordinal);
+
 void writer_destroy(Writer *writer);
+
+AVFormatContext* init_segmented_writer(bool is_video, AVCodecParameters *obs_codec_params);
 
 void submit_frame([[maybe_unused]] Writer *writer);

@@ -7,11 +7,13 @@
  * timeline API.
  */
 
-Writer *writer_create(WriterType type)
+Writer *writer_create(WriterType type, int ordinal)
 {
 	Writer *writer = new Writer{};
 	writer->type = type;
 	writer->current_segment = segment_create("/home/zayd/Dev/obs-replay/test_files/test.fmp4", 0);
+    // perhaps we may want to check this corresponds to a valid obs source slot later on
+    writer->ordinal = ordinal;
 	return writer;
 }
 
@@ -21,7 +23,23 @@ void writer_destroy(Writer *writer)
 	delete writer;
 }
 
+AVFormatContext* init_segmented_writer(bool is_video, AVCodecParameters *obs_codec_params) {
+    AVFormatContext *fmt_ctx;
+    avformat_alloc_output_context2(&fmt_ctx, nullptr, "segment", SEGMENT_FILE_NAME_BASE);
+
+    AVStream* stream = avformat_new_stream(fmt_ctx, nullptr);
+    avcodec_parameters_copy(stream->codecpar, obs_codec_params);
+
+    AVDictionary *opt = nullptr;
+    av_dict_set(&opt, "segment_time", "1200", 0);
+    av_dict_set(&opt, "segment_format", "mp4", 0);
+    av_dict_set(&opt, "reset_timestamps", "1", 0);
+
+    av_dict_set(&opt, "movflags", "empty_moov+default_base_moof+frag_keyframe", 0);
+}
+
 void submit_frame([[maybe_unused]] Writer *writer)
 {
+    
 	return;
 }

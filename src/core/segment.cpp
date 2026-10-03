@@ -8,6 +8,9 @@
 
 Segment *segment_create([[maybe_unused]] const std::string &path, [[maybe_unused]] uint64_t start_timestamp)
 {
+    Segment* ret;
+    ret->start_timestamp = start_timestamp;
+    ret->path = path;
 	return nullptr;
 }
 

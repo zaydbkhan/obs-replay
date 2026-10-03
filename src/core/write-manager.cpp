@@ -1,5 +1,4 @@
 #include "write-manager.h"
-
 #include "writer.h"
 
 /**
@@ -25,4 +24,16 @@ void write_manager_destroy(WriteManager *manager)
 void submit_frame([[maybe_unused]] WriteManager *manager)
 {
 	return;
+}
+
+bool determine_output_directory(WriteManager* manager, std::string path) {
+    if(path == "") {
+        // handle this in some way
+        return false;
+    }
+    // Check the directory is valid higher up
+    else {
+        manager->output_directory_path = path;
+    }
+    return true;
 }

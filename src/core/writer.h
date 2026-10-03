@@ -24,6 +24,7 @@ struct Writer {
 	Segment *current_segment;
     // Which source slot this writer corresponds to basically
     int ordinal;
+    std::string base_file_name;
 };
 
 Writer *writer_create(WriterType type, int ordinal);

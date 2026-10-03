@@ -14,7 +14,14 @@ FetchContent_MakeAvailable(googletest)
 add_executable(unit-tests)
 target_sources(
   unit-tests
-  PRIVATE smoke-test.cpp timeline-test.cpp ${PROJECT_SOURCE_DIR}/src/core/timeline.cpp)
+  PRIVATE
+    smoke-test.cpp
+    timeline-test.cpp
+    write-manager-test.cpp
+    ${PROJECT_SOURCE_DIR}/src/core/timeline.cpp
+    ${PROJECT_SOURCE_DIR}/src/core/write-manager.cpp
+    ${PROJECT_SOURCE_DIR}/src/core/writer.cpp
+    ${PROJECT_SOURCE_DIR}/src/core/segment.cpp)
 target_include_directories(unit-tests PRIVATE ${PROJECT_SOURCE_DIR}/src/core)
 target_link_libraries(unit-tests PRIVATE GTest::gtest_main)
 

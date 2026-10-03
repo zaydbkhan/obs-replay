@@ -15,11 +15,14 @@ enum PixelFormat {
 	PIXEL_FORMAT_RGBA,
 };
 
-struct Frame {
-	uint64_t timestamp_ns; // recording-relative (from the timeline)
+struct VideoInfo {
 	uint32_t width;
 	uint32_t height;
 	enum PixelFormat format;
+};
+
+struct Frame {
+	uint64_t timestamp_ns; // recording-relative (from the timeline)
 	const uint8_t *data[MAX_PLANES];
 	uint32_t linesize[MAX_PLANES];
 };

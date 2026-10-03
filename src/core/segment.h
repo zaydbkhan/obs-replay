@@ -3,6 +3,8 @@
 #include <cstdint>
 #include <string>
 
+#include "models.h"
+
 // Segments
 /**
  * The literal files that the writers write to, and everything else reads from. Will have some
@@ -14,6 +16,7 @@ struct Segment {
 	std::string path;
 	uint64_t start_timestamp;
 	uint64_t end_timestamp;
+	VideoInfo video_info;
 };
 
 Segment *segment_create(const std::string &path, uint64_t start_timestamp);

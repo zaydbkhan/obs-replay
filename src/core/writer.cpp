@@ -23,7 +23,7 @@ void writer_destroy(Writer *writer)
 
 void writer_update_source(Writer *writer, const VideoInfo *info)
 {
-	writer->video_info = *info;
+	writer->current_segment->video_info = *info;
 }
 
 void submit_frame([[maybe_unused]] Writer *writer)

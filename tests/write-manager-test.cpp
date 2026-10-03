@@ -20,9 +20,9 @@ TEST_F(WriteManagerTest, StoresVideoInfoFromUpdateSource)
 	VideoInfo info{1920, 1080, PIXEL_FORMAT_NV12};
 	write_manager_update_source(manager, &info);
 
-	EXPECT_EQ(manager->video_writer->video_info.width, 1920u);
-	EXPECT_EQ(manager->video_writer->video_info.height, 1080u);
-	EXPECT_EQ(manager->video_writer->video_info.format, PIXEL_FORMAT_NV12);
+	EXPECT_EQ(manager->video_writer->current_segment->video_info.width, 1920u);
+	EXPECT_EQ(manager->video_writer->current_segment->video_info.height, 1080u);
+	EXPECT_EQ(manager->video_writer->current_segment->video_info.format, PIXEL_FORMAT_NV12);
 }
 
 TEST_F(WriteManagerTest, ReplacesVideoInfoOnSourceUpdate)
@@ -33,7 +33,7 @@ TEST_F(WriteManagerTest, ReplacesVideoInfoOnSourceUpdate)
 	VideoInfo second{1280, 720, PIXEL_FORMAT_I420};
 	write_manager_update_source(manager, &second);
 
-	EXPECT_EQ(manager->video_writer->video_info.width, 1280u);
-	EXPECT_EQ(manager->video_writer->video_info.height, 720u);
-	EXPECT_EQ(manager->video_writer->video_info.format, PIXEL_FORMAT_I420);
+	EXPECT_EQ(manager->video_writer->current_segment->video_info.width, 1280u);
+	EXPECT_EQ(manager->video_writer->current_segment->video_info.height, 720u);
+	EXPECT_EQ(manager->video_writer->current_segment->video_info.format, PIXEL_FORMAT_I420);
 }

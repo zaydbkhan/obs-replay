@@ -20,5 +20,5 @@ struct Segment {
 	VideoInfo video_info;
 };
 
-Segment *segment_create(const std::filesystem::path& path, uint64_t start_timestamp);
+Segment *segment_create(const std::filesystem::path &path, uint64_t start_timestamp);
 void segment_destroy(Segment *segment);

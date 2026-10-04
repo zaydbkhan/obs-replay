@@ -21,8 +21,6 @@ struct WriteManager {
 WriteManager *write_manager_create();
 void write_manager_destroy(WriteManager *manager);
 
-void submit_frame([[maybe_unused]] WriteManager *manager);
-
 // By default, we will probably just use OBS's recording directory
 // However, we may also allow the user to specify their own directory for the replays to appear in.
 // We will just take in the path from some other part of the program, probably the API

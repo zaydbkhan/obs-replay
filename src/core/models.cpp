@@ -19,7 +19,7 @@ const Packet *packet_create(uint64_t timestamp_ns, const uint8_t *data, size_t s
 	return packet;
 }
 
-void packet_destroy(Packet *packet)
+void packet_destroy(const Packet *packet)
 {
 	delete[] packet->data;
 	delete packet;

@@ -28,7 +28,7 @@ VideoCodec video_codec_from_obs(const char *codec)
 	return VIDEO_CODEC_H264;
 }
 
-VideoInfo video_info_from_encoder(obs_encoder_t *encoder)
+const VideoInfo video_info_from_encoder(obs_encoder_t *encoder)
 {
 	const video_t *video = obs_encoder_video(encoder);
 	const video_output_info *output_info = video_output_get_info(video);
@@ -47,7 +47,7 @@ VideoInfo video_info_from_encoder(obs_encoder_t *encoder)
 	return info;
 }
 
-Packet *packet_from_obs_packet(Timeline *timeline, encoder_packet *obs_packet)
+const Packet *packet_from_obs_packet(Timeline *timeline, encoder_packet *obs_packet)
 {
 	return packet_create(timeline_translate(timeline, obs_packet->sys_dts_usec * 1000), obs_packet->data,
 			     obs_packet->size);

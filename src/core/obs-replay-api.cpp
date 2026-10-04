@@ -50,7 +50,7 @@ void obs_replay_core_stop_recording()
 
 void obs_replay_update_source(obs_encoder_t *encoder)
 {
-	VideoInfo info = video_info_from_encoder(encoder);
+	const VideoInfo info = video_info_from_encoder(encoder);
 	write_manager_update_source(core->write_manager, &info);
 }
 
@@ -59,6 +59,6 @@ void obs_replay_submit_encoded_packet(encoder_packet *obs_packet)
 	if (!timeline_is_recording(core->timeline))
 		return;
 
-	Packet *packet = packet_from_obs_packet(core->timeline, obs_packet);
+	const Packet *packet = packet_from_obs_packet(core->timeline, obs_packet);
 	write_manager_submit_packet(core->write_manager, packet);
 }

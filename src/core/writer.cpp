@@ -93,11 +93,22 @@ void writer_submit_packet([[maybe_unused]] Writer *writer, [[maybe_unused]] cons
 {
 	AVPacket *pkt = av_packet_alloc();
 	if (!pkt) {
-        // handle memory allocation failure
-        return;
+		// handle memory allocation failure
+		return;
 	}
 
-    av_new_packet(pkt, packet->size);
+	av_new_packet(pkt, packet->size);
+	memcpy(pkt->data, packet->data, packet->size);
 
-	int ret = av_interleaved_write_frame(writer->fmt_ctx, )
+	pkt->dts = pkt->pts = packet->timestamp_ns;
+	pkt->flags = AV_PKT_FLAG_KEY;
+	pkt->stream_index = 0;
+
+	int ret = av_interleaved_write_frame(writer->fmt_ctx, pkt);
+
+	if (ret < 0) {
+		// Handle error (e.g., print av_err2str(ret))
+	}
+
+	av_packet_free(&pkt);
 }

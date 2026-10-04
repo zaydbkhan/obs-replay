@@ -29,9 +29,9 @@ void write_manager_update_source(WriteManager *manager, const VideoInfo *info)
 	writer_update_source(manager->video_writer, info);
 }
 
-void write_manager_submit_packet([[maybe_unused]] WriteManager *manager, [[maybe_unused]] const Packet *packet)
+void write_manager_submit_packet(WriteManager *manager, const Packet *packet)
 {
-	return;
+	writer_submit_packet(manager->video_writer, packet);
 }
 
 bool determine_output_directory(WriteManager *manager, std::string path)

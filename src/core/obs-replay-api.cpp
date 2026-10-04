@@ -33,13 +33,20 @@ void obs_replay_core_init()
 
 void obs_replay_core_destroy()
 {
+	timeline_destroy(core->timeline);
 	write_manager_destroy(core->write_manager);
 	delete core;
 }
 
-void obs_replay_core_start_recording() {}
+void obs_replay_core_start_recording()
+{
+	timeline_start_recording(core->timeline);
+}
 
-void obs_replay_core_stop_recording() {}
+void obs_replay_core_stop_recording()
+{
+	timeline_stop_recording(core->timeline);
+}
 
 void obs_replay_update_source(obs_encoder_t *encoder)
 {
@@ -49,6 +56,9 @@ void obs_replay_update_source(obs_encoder_t *encoder)
 
 void obs_replay_submit_encoded_packet(encoder_packet *obs_packet)
 {
-	Packet packet = packet_from_obs_packet(core->timeline, obs_packet);
-	write_manager_submit_packet(core->write_manager, &packet);
+	if (!timeline_is_recording(core->timeline))
+		return;
+
+	Packet *packet = packet_from_obs_packet(core->timeline, obs_packet);
+	write_manager_submit_packet(core->write_manager, packet);
 }

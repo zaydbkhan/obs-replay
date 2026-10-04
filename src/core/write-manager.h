@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 // Write Manager
 /**
  * Thin manager that owns the Writers and coordinates the multi-threading around them, keeping
@@ -28,4 +30,4 @@ void submit_frame([[maybe_unused]] WriteManager *manager);
 bool determine_output_directory(std::string path);
 void write_manager_update_source(WriteManager *manager, const VideoInfo *info);
 
-void write_manager_submit_packet([[maybe_unused]] WriteManager *manager, [[maybe_unused]] const Packet *packet);
+void write_manager_submit_packet(WriteManager *manager, const Packet *packet);

@@ -47,11 +47,8 @@ VideoInfo video_info_from_encoder(obs_encoder_t *encoder)
 	return info;
 }
 
-Packet packet_from_obs_packet(Timeline *timeline, encoder_packet *obs_packet)
+Packet *packet_from_obs_packet(Timeline *timeline, encoder_packet *obs_packet)
 {
-	Packet packet{};
-	packet.timestamp_ns = timeline_translate(timeline, obs_packet->sys_dts_usec * 1000);
-	packet.data = obs_packet->data;
-	packet.size = obs_packet->size;
-	return packet;
+	return packet_create(timeline_translate(timeline, obs_packet->sys_dts_usec * 1000), obs_packet->data,
+			     obs_packet->size);
 }

@@ -9,8 +9,10 @@
 WriteManager *write_manager_create()
 {
 	WriteManager *manager = new WriteManager{};
-	manager->video_writer = writer_create(WRITER_VIDEO);
-	manager->audio_writer = writer_create(WRITER_AUDIO);
+    determine_output_directory(manager, "/Users/isaackhabra/Documents/Programming/projects/obs_replay/test/recording_files");
+	manager->video_writer = writer_create(WRITER_VIDEO, 1, manager->output_directory_path);
+	manager->audio_writer = writer_create(WRITER_AUDIO, 1, manager->output_directory_path);
+    
 	return manager;
 }
 

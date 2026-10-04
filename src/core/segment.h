@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <string>
+#include <filesystem>
 
 #include "models.h"
 
@@ -13,11 +14,11 @@
  */
 
 struct Segment {
-	std::string path;
+	std::filesystem::path path;
 	uint64_t start_timestamp;
 	uint64_t end_timestamp;
 	VideoInfo video_info;
 };
 
-Segment *segment_create(const std::string &path, uint64_t start_timestamp);
+Segment *segment_create(const std::filesystem::path& path, uint64_t start_timestamp);
 void segment_destroy(Segment *segment);

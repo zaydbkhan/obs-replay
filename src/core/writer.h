@@ -2,8 +2,8 @@
 
 #include "segment.h"
 #include <libavformat/avformat.h>
+#include <filesystem>
 
-#define SEGMENT_FILE_NAME_BASE "replay_source_"
 
 // Writers
 /**
@@ -12,7 +12,6 @@
  * segments after every 20 minutes, or when a source changes, and records timestamps via the
  * timeline API.
  */
-
 
 enum WriterType {
 	WRITER_VIDEO,
@@ -24,10 +23,11 @@ struct Writer {
 	Segment *current_segment;
     // Which source slot this writer corresponds to basically
     int ordinal;
+    AVFormatContext* fmt_ctx;
     std::string base_file_name;
 };
 
-Writer *writer_create(WriterType type, int ordinal);
+Writer *writer_create(WriterType type, int ordinal, std::filesystem::path directory_path);
 
 void writer_destroy(Writer *writer);
 

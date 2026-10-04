@@ -6,7 +6,7 @@
  * infrastructure to reduce syscalls (but that's unlikely to be the main slowdown).
  */
 
-Segment *segment_create(const std::string &path, uint64_t start_timestamp)
+Segment *segment_create(const std::filesystem::path& path, uint64_t start_timestamp)
 {
 	return new Segment{path, start_timestamp};
 }

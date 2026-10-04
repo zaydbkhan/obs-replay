@@ -1,4 +1,5 @@
 #include "writer.h"
+#include "constants.h"
 #include <string>
 
 /**
@@ -8,14 +9,16 @@
  * timeline API.
  */
 
-Writer *writer_create(WriterType type, int ordinal)
+Writer *writer_create(WriterType type, int ordinal, std::filesystem::path directory_path)
 {
 	Writer *writer = new Writer{};
 	writer->type = type;
-	writer->current_segment = segment_create("/home/zayd/Dev/obs-replay/test_files/test.fmp4", 0);
+	
     // perhaps we may want to check this corresponds to a valid obs source slot later on
     writer->ordinal = ordinal;
-    writer->base_file_name = SEGMENT_FILE_NAME_BASE + std::to_string(ordinal);
+    writer->base_file_name = SEGMENT_FILE_NAME_BASE + std::to_string(ordinal) + "_";
+
+    writer->current_segment = segment_create(directory_path / (writer->base_file_name + "0"), 0);
 	return writer;
 }
 
@@ -45,10 +48,47 @@ AVFormatContext* init_segmented_fmp4_writer(std::string base_file_name, bool is_
 void writer_update_source(Writer *writer, const VideoInfo *info)
 {
 	writer->current_segment->video_info = *info;
+
+    // create our codec params based on the info from OBS
+    AVCodecParameters *codec_params = avcodec_parameters_alloc();
+
+    codec_params->codec_type = AVMEDIA_TYPE_VIDEO;
+    switch(info->codec) {
+        case VIDEO_CODEC_H264:
+            codec_params->codec_id = AV_CODEC_ID_H264;
+            break;
+        case VIDEO_CODEC_AV1:
+            codec_params->codec_id = AV_CODEC_ID_AV1;
+            break;
+        case VIDEO_CODEC_HEVC:
+            codec_params->codec_id = AV_CODEC_ID_HEVC;
+            break;
+        default:
+            // handle this later
+    }
+
+    switch(info->format) {
+        case PIXEL_FORMAT_I420:
+            codec_params->format = AV_PIX_FMT_YUV420P;
+            break;
+        case PIXEL_FORMAT_NV12:
+            codec_params->format = AV_PIX_FMT_NV12;
+            break;
+        case PIXEL_FORMAT_RGBA:
+            codec_params->format = AV_PIX_FMT_RGBA;
+            break;
+        default:
+            // handle this later
+    }
+
+    codec_params->width = info->width;
+    codec_params->height = info->height;
+
+    writer->fmt_ctx = init_segmented_fmp4_writer(writer->current_segment->path.string(), true, codec_params);
 }
 
 void submit_frame([[maybe_unused]] Writer *writer)
 {
-    
+
 	return;
 }

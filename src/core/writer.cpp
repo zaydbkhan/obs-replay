@@ -1,6 +1,7 @@
 #include "writer.h"
 #include "constants.h"
 #include <string>
+#include <optional>
 
 /**
  * Two types (Audio/Video). Live in their own lower priority threads with small internal queues to
@@ -28,9 +29,12 @@ void writer_destroy(Writer *writer)
 	delete writer;
 }
 
-AVFormatContext *init_segmented_fmp4_writer(std::string base_file_name, bool is_video,
+std::optional<AVFormatContext*> init_segmented_fmp4_writer(std::string base_file_name, bool is_video,
 					    AVCodecParameters *obs_codec_params)
 {
+    if(is_video) {
+        // fill in later
+    }
 	AVFormatContext *fmt_ctx;
 	avformat_alloc_output_context2(&fmt_ctx, nullptr, "segment", base_file_name.c_str());
 	AVStream *stream = avformat_new_stream(fmt_ctx, nullptr);
@@ -44,7 +48,12 @@ AVFormatContext *init_segmented_fmp4_writer(std::string base_file_name, bool is_
 	av_dict_set(&opt, "movflags", "empty_moov+default_base_moof+frag_keyframe", 0);
 
 	avio_open(&fmt_ctx->pb, base_file_name.c_str(), AVIO_FLAG_WRITE);
-	avformat_write_header(fmt_ctx, &opt);
+	int ret = avformat_write_header(fmt_ctx, &opt);
+    if (ret < 0) {
+        // handle error
+        return std::nullopt;
+    }
+    return fmt_ctx;
 }
 
 void writer_update_source(Writer *writer, const VideoInfo *info)
@@ -66,6 +75,7 @@ void writer_update_source(Writer *writer, const VideoInfo *info)
 		codec_params->codec_id = AV_CODEC_ID_HEVC;
 		break;
 	default:
+        ;
 		// handle this later
 	}
 
@@ -79,18 +89,43 @@ void writer_update_source(Writer *writer, const VideoInfo *info)
 	case PIXEL_FORMAT_RGBA:
 		codec_params->format = AV_PIX_FMT_RGBA;
 		break;
-	default:
+	default:   
+        ;
 		// handle this later
 	}
 
 	codec_params->width = info->width;
 	codec_params->height = info->height;
 
-	writer->fmt_ctx = init_segmented_fmp4_writer(writer->current_segment->path.string(), true, codec_params);
+    if(auto ret = init_segmented_fmp4_writer(writer->current_segment->path.string(), true, codec_params))
+    {
+	    writer->fmt_ctx = *ret;
+    } else {
+        // handle error
+    }
 }
 
 void writer_submit_packet([[maybe_unused]] Writer *writer, [[maybe_unused]] const Packet *packet)
 {
+	AVPacket *pkt = av_packet_alloc();
+	if (!pkt) {
+		// handle memory allocation failure
+		return;
+	}
 
-	return;
+	av_new_packet(pkt, packet->size);
+	memcpy(pkt->data, packet->data, packet->size);
+
+	pkt->dts = pkt->pts = packet->timestamp_ns;
+	pkt->flags = AV_PKT_FLAG_KEY;
+	pkt->stream_index = 0;
+
+	int ret = av_interleaved_write_frame(writer->fmt_ctx, pkt);
+
+	if (ret < 0) {
+		// Handle error (e.g., print av_err2str(ret))
+	}
+
+    packet_destroy(packet);
+	av_packet_free(&pkt);
 }

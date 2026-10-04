@@ -2,7 +2,7 @@
 
 #include <obs.h>
 
-#include "core/obs-replay-api.h"
+#include "../core/obs-replay-api.h"
 
 /**
  * Manages the OBS side of things for our writers, including calling the API when a

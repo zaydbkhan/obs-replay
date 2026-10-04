@@ -25,7 +25,7 @@ void write_manager_destroy(WriteManager *manager);
 // However, we may also allow the user to specify their own directory for the replays to appear in.
 // We will just take in the path from some other part of the program, probably the API
 // Returns whether there was a path passed in or not
-bool determine_output_directory(std::string path);
+bool determine_output_directory(WriteManager* manager, std::string path);
 void write_manager_update_source(WriteManager *manager, const VideoInfo *info);
 
 void write_manager_submit_packet(WriteManager *manager, const Packet *packet);

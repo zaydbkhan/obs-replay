@@ -1,7 +1,9 @@
 #pragma once
 
 #include "segment.h"
+extern "C" {
 #include <libavformat/avformat.h>
+}
 #include <filesystem>
 
 // Writers

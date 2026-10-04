@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include <filesystem>
 
 // Write Manager
 /**
@@ -15,17 +15,13 @@ struct Packet;
 struct WriteManager {
 	Writer *video_writer;
 	Writer *audio_writer;
-	std::string output_directory_path;
+	std::filesystem::path output_directory_path;
 };
 
-WriteManager *write_manager_create();
+WriteManager *write_manager_create(const std::filesystem::path &recording_path);
 void write_manager_destroy(WriteManager *manager);
 
-// By default, we will probably just use OBS's recording directory
-// However, we may also allow the user to specify their own directory for the replays to appear in.
-// We will just take in the path from some other part of the program, probably the API
-// Returns whether there was a path passed in or not
-bool determine_output_directory(WriteManager* manager, std::string path);
+bool determine_output_directory(WriteManager *manager, const std::filesystem::path &recording_path);
 void write_manager_update_source(WriteManager *manager, const VideoInfo *info);
 
 void write_manager_submit_packet(WriteManager *manager, const Packet *packet);

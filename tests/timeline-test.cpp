@@ -83,16 +83,13 @@ TEST_F(TimelineTest, RecordedElapsedFreezesAtStop)
 
 TEST_F(TimelineTest, SecondSessionResumesAtFirstSessionEnd)
 {
-	// Session 1: 1000 -> 1600, i.e. 600ns recorded.
 	clock.now = 1000;
 	timeline_start_recording(timeline);
 	clock.now = 1600;
 	timeline_stop_recording(timeline);
 
-	// One hour of real time passes with no frames arriving.
 	clock.now += 3600 * 1000000000ull;
 
-	// Session 2 must continue counting up from 600 as if no time passed.
 	timeline_start_recording(timeline);
 	EXPECT_EQ(timeline_translate(timeline, clock.now), 600u);
 
@@ -108,12 +105,12 @@ TEST_F(TimelineTest, ThirdSessionResumesAtSecondSessionEnd)
 	clock.now = 1600;
 	timeline_stop_recording(timeline);
 
-	clock.now = 5000; // gap
+	clock.now = 5000;
 	timeline_start_recording(timeline);
 	clock.now = 5400;
 	timeline_stop_recording(timeline);
 
-	clock.now = 90000; // bigger gap
+	clock.now = 90000;
 	timeline_start_recording(timeline);
 
 	EXPECT_EQ(timeline_translate(timeline, clock.now), 1000u);

@@ -13,7 +13,7 @@ extern "C" {
  */
 
 /** Initializes the core library. */
-void obs_replay_core_init();
+void obs_replay_core_init(const char *recording_path);
 
 /** Tears down everything the core owns. */
 void obs_replay_core_destroy();

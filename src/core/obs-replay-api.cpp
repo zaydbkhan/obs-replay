@@ -24,11 +24,11 @@ uint64_t obs_clock([[maybe_unused]] void *data)
 	return os_gettime_ns();
 }
 
-void obs_replay_core_init()
+void obs_replay_core_init(const char *recording_path)
 {
 	core = new Core{};
 	core->timeline = timeline_create(obs_clock, nullptr);
-	core->write_manager = write_manager_create();
+	core->write_manager = write_manager_create(recording_path ? recording_path : "");
 }
 
 void obs_replay_core_destroy()

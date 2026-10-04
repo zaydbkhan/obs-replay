@@ -7,7 +7,7 @@ class WriteManagerTest : public ::testing::Test {
 protected:
 	WriteManager *manager = nullptr;
 
-	void SetUp() override { manager = write_manager_create(); }
+	void SetUp() override { manager = write_manager_create(::testing::TempDir()); }
 	void TearDown() override
 	{
 		if (manager)

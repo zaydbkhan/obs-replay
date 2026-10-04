@@ -1,10 +1,13 @@
 #pragma once
 
-#include "segment.h"
+#include <filesystem>
+#include <string>
+
 extern "C" {
 #include <libavformat/avformat.h>
 }
-#include <filesystem>
+
+#include "segment.h"
 
 // Writers
 /**
@@ -21,18 +24,18 @@ enum WriterType {
 
 struct Writer {
 	WriterType type;
-	Segment *current_segment;
-	// Which source slot this writer corresponds to basically
 	int ordinal;
-	AVFormatContext *fmt_ctx;
+	std::filesystem::path directory_path;
 	std::string base_file_name;
+	uint32_t segment_index;
+	Segment *current_segment;
+	AVFormatContext *fmt_ctx;
+	bool segment_has_packets;
 };
 
-Writer *writer_create(WriterType type, int ordinal, std::filesystem::path directory_path);
-
+Writer *writer_create(WriterType type, int ordinal, const std::filesystem::path &directory_path);
 void writer_destroy(Writer *writer);
 
-AVFormatContext *init_segmented_writer(bool is_video, AVCodecParameters *obs_codec_params);
 void writer_update_source(Writer *writer, const VideoInfo *info);
 
-void writer_submit_packet([[maybe_unused]] Writer *writer, [[maybe_unused]] const Packet *packet);
+void writer_submit_packet(Writer *writer, const Packet *packet);

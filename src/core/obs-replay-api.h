@@ -2,6 +2,10 @@
 
 #include <obs.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // OBS Replay API
 /**
  * Translation layer between the rest of the app and OBS, giving callers like the router a stable,
@@ -24,4 +28,8 @@ void obs_replay_core_stop_recording();
 void obs_replay_update_source(obs_encoder_t *encoder);
 
 /** Submit an encoded packet to the writer. */
-void obs_replay_submit_encoded_packet(encoder_packet *obs_packet);
+void obs_replay_submit_encoded_packet(struct encoder_packet *obs_packet);
+
+#ifdef __cplusplus
+}
+#endif

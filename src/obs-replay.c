@@ -17,18 +17,52 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 */
 
 #include <obs-module.h>
+#include <obs-frontend-api.h>
 #include <plugin-support.h>
+
+#include "core/obs-replay-api.h"
+#include "obs/ingest.h"
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE(PLUGIN_NAME, "en-US")
 
+static struct Ingest *ingest = NULL;
+
+static void frontend_event_callback(enum obs_frontend_event event, void *data)
+{
+	(void)data;
+
+	switch (event) {
+	case OBS_FRONTEND_EVENT_FINISHED_LOADING:
+		ingest = ingest_create();
+		obs_replay_core_start_recording();
+		break;
+	case OBS_FRONTEND_EVENT_EXIT:
+		obs_replay_core_stop_recording();
+		if (ingest) {
+			ingest_destroy(ingest);
+			ingest = NULL;
+		}
+		break;
+	default:
+		break;
+	}
+}
+
 bool obs_module_load(void)
 {
+	ingest_register_output();
+	obs_replay_core_init();
+	obs_frontend_add_event_callback(frontend_event_callback, NULL);
+
 	obs_log(LOG_INFO, "plugin loaded successfully (version %s)", PLUGIN_VERSION);
 	return true;
 }
 
 void obs_module_unload(void)
 {
+	obs_frontend_remove_event_callback(frontend_event_callback, NULL);
+	obs_replay_core_destroy();
+
 	obs_log(LOG_INFO, "plugin unloaded");
 }

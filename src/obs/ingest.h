@@ -6,9 +6,17 @@
  * source changes, passing through obs video data, etc.
  */
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct Ingest;
 
 void ingest_register_output();
 
-Ingest *ingest_create();
-void ingest_destroy(Ingest *ingest);
+struct Ingest *ingest_create();
+void ingest_destroy(struct Ingest *ingest);
+
+#ifdef __cplusplus
+}
+#endif

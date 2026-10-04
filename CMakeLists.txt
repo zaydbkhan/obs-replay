@@ -40,6 +40,7 @@ target_sources(
   PRIVATE
     src/obs-replay.c
     src/core/obs-replay-api.cpp
+    src/core/obs-mappings.cpp
     src/core/editor-state.cpp
     src/core/output-manager.cpp
     src/core/packet-sidecar.cpp

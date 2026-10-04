@@ -3,6 +3,7 @@
 #include <util/platform.h>
 
 #include "models.h"
+#include "obs-mappings.h"
 #include "timeline.h"
 #include "write-manager.h"
 
@@ -40,43 +41,14 @@ void obs_replay_core_start_recording() {}
 
 void obs_replay_core_stop_recording() {}
 
-static PixelFormat pixel_format_from_obs(video_format format)
+void obs_replay_update_source(obs_encoder_t *encoder)
 {
-	switch (format) {
-	case VIDEO_FORMAT_NV12:
-		return PIXEL_FORMAT_NV12;
-	case VIDEO_FORMAT_RGBA:
-		return PIXEL_FORMAT_RGBA;
-	case VIDEO_FORMAT_I420:
-	default:
-		return PIXEL_FORMAT_I420;
-	}
-}
-
-void obs_replay_update_source(video_t *video)
-{
-	const video_output_info *output_info = video_output_get_info(video);
-	VideoInfo info{
-		output_info->width,
-		output_info->height,
-		pixel_format_from_obs(output_info->format),
-	};
+	VideoInfo info = video_info_from_encoder(encoder);
 	write_manager_update_source(core->write_manager, &info);
 }
 
-Frame frame_from_video_data(video_data *frame_data)
+void obs_replay_submit_encoded_packet(encoder_packet *obs_packet)
 {
-	Frame frame{};
-	frame.timestamp_ns = timeline_translate(core->timeline, frame_data->timestamp);
-	for (size_t i = 0; i < MAX_PLANES; i++) {
-		frame.data[i] = frame_data->data[i];
-		frame.linesize[i] = frame_data->linesize[i];
-	}
-	return frame;
-}
-
-void obs_replay_submit_frame(video_data *frame_data)
-{
-	[[maybe_unused]] Frame frame = frame_from_video_data(frame_data);
+	[[maybe_unused]] Packet frame = packet_from_obs_packet(core->timeline, obs_packet);
 	submit_frame(core->write_manager);
 }

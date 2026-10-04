@@ -24,7 +24,7 @@ bool get_first_source_callback(void *data, obs_source_t *source)
 
 void api_submission_callback([[maybe_unused]] void *data, struct video_data *frame)
 {
-	obs_replay_submit_frame(frame);
+	obs_replay_submit_encoded_packet(frame);
 }
 
 Ingest *ingest_create()

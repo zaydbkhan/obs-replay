@@ -21,7 +21,7 @@ void obs_replay_core_start_recording();
 void obs_replay_core_stop_recording();
 
 /** Updates the writers with the video info of a new or changed source. */
-void obs_replay_update_source(video_t *video);
+void obs_replay_update_source(obs_encoder_t *encoder);
 
 /** Submit an encoded packet to the writer. */
-void obs_replay_submit_encoded_packet([[maybe_unused]] video_data *frame_data);
+void obs_replay_submit_encoded_packet(encoder_packet *obs_packet);

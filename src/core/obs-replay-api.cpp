@@ -49,6 +49,6 @@ void obs_replay_update_source(obs_encoder_t *encoder)
 
 void obs_replay_submit_encoded_packet(encoder_packet *obs_packet)
 {
-	[[maybe_unused]] Packet frame = packet_from_obs_packet(core->timeline, obs_packet);
-	submit_frame(core->write_manager);
+	Packet packet = packet_from_obs_packet(core->timeline, obs_packet);
+	write_manager_submit_packet(core->write_manager, &packet);
 }

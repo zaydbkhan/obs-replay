@@ -26,7 +26,7 @@ void writer_update_source(Writer *writer, const VideoInfo *info)
 	writer->current_segment->video_info = *info;
 }
 
-void submit_frame([[maybe_unused]] Writer *writer)
+void writer_submit_packet([[maybe_unused]] Writer *writer, [[maybe_unused]] const Packet *packet)
 {
 	return;
 }

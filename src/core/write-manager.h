@@ -8,6 +8,7 @@
 
 struct Writer;
 struct VideoInfo;
+struct Packet;
 
 struct WriteManager {
 	Writer *video_writer;
@@ -19,4 +20,4 @@ void write_manager_destroy(WriteManager *manager);
 
 void write_manager_update_source(WriteManager *manager, const VideoInfo *info);
 
-void submit_frame([[maybe_unused]] WriteManager *manager);
+void write_manager_submit_packet([[maybe_unused]] WriteManager *manager, [[maybe_unused]] const Packet *packet);

@@ -27,7 +27,7 @@ void write_manager_update_source(WriteManager *manager, const VideoInfo *info)
 	writer_update_source(manager->video_writer, info);
 }
 
-void submit_frame([[maybe_unused]] WriteManager *manager)
+void write_manager_submit_packet([[maybe_unused]] WriteManager *manager, [[maybe_unused]] const Packet *packet)
 {
 	return;
 }

@@ -21,6 +21,9 @@ struct Ingest {
 
 bool get_first_source_callback(void *data, obs_source_t *source)
 {
+	if (!(obs_source_get_output_flags(source) & OBS_SOURCE_VIDEO))
+		return true;
+
 	auto **to_assign = static_cast<obs_source_t **>(data);
 	*to_assign = obs_source_get_ref(source);
 	return false;
@@ -98,36 +101,60 @@ Ingest *ingest_create()
 
 	obs_video_info video_info;
 	obs_get_video_info(&video_info);
-	video_info.base_height = obs_source_get_height(source);
-	video_info.base_width = obs_source_get_width(source);
-	video_info.output_height = video_info.base_height;
+	uint32_t source_width = obs_source_get_width(source);
+	uint32_t source_height = obs_source_get_height(source);
+	if (source_width && source_height) {
+		video_info.base_width = source_width;
+		video_info.base_height = source_height;
+	}
 	video_info.output_width = video_info.base_width;
+	video_info.output_height = video_info.base_height;
 	video_info.output_format = VIDEO_FORMAT_NV12;
 
 	ingest->view = obs_view_create();
 	obs_view_set_source(ingest->view, 0, source);
 	ingest->video = obs_view_add2(ingest->view, &video_info);
+	if (!ingest->video) {
+		ingest_destroy(ingest);
+		return nullptr;
+	}
 
 	ingest->encoder = create_encoder(ingest->video);
 	ingest->output = obs_output_create(INGEST_OUTPUT_ID, "obs-replay-ingest-output", nullptr, nullptr);
+	if (!ingest->encoder || !ingest->output) {
+		ingest_destroy(ingest);
+		return nullptr;
+	}
 	obs_output_set_video_encoder(ingest->output, ingest->encoder);
 
-	obs_output_initialize_encoders(ingest->output, 0);
+	if (!obs_output_initialize_encoders(ingest->output, 0)) {
+		ingest_destroy(ingest);
+		return nullptr;
+	}
 	obs_replay_update_source(ingest->encoder);
-	obs_output_start(ingest->output);
+
+	if (!obs_output_start(ingest->output)) {
+		ingest_destroy(ingest);
+		return nullptr;
+	}
 
 	return ingest;
 }
 
 void ingest_destroy(Ingest *ingest)
 {
-	obs_output_force_stop(ingest->output);
-	obs_output_release(ingest->output);
+	if (ingest->output) {
+		obs_output_force_stop(ingest->output);
+		obs_output_release(ingest->output);
+	}
 	obs_encoder_release(ingest->encoder);
 
-	obs_view_set_source(ingest->view, 0, nullptr);
-	obs_view_remove(ingest->view);
-	obs_view_destroy(ingest->view);
+	if (ingest->view) {
+		obs_view_set_source(ingest->view, 0, nullptr);
+		if (ingest->video)
+			obs_view_remove(ingest->view);
+		obs_view_destroy(ingest->view);
+	}
 	obs_source_release(ingest->source);
 	delete ingest;
 }

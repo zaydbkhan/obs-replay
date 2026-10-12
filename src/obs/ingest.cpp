@@ -1,6 +1,7 @@
 #include "ingest.h"
 
 #include <obs.h>
+#include <string>
 
 #include "../core/obs-replay-api.h"
 
@@ -36,7 +37,13 @@ static const char *ingest_output_get_name([[maybe_unused]] void *type_data)
 
 static void *ingest_output_create([[maybe_unused]] obs_data_t *settings, obs_output_t *output)
 {
-	return output;
+    auto *context = new IngestOutputContext();
+    context->output = output;
+    const char *name = obs_data_get_string(settings, "source_name");
+    if(name) {
+        context->source_name = name;
+    }
+	return context;
 }
 
 static void ingest_output_destroy([[maybe_unused]] void *data) {}
@@ -58,7 +65,12 @@ static void ingest_output_stop(void *data, [[maybe_unused]] uint64_t ts)
 
 static void ingest_output_encoded_packet([[maybe_unused]] void *data, encoder_packet *packet)
 {
-	obs_replay_submit_encoded_packet(packet);
+    auto *context = static_cast<IngestOutputContext *>(data);
+    if(!context || context->source_name.empty()) {
+        return;
+    }
+
+	obs_replay_submit_encoded_packet(packet, context->source_name);
 }
 
 void ingest_register_output()
@@ -96,6 +108,8 @@ Ingest *ingest_create()
 	if (!source)
 		return nullptr;
 
+    const char* source_name = obs_source_get_name(source);
+
 	auto *ingest = new Ingest{};
 	ingest->source = source;
 
@@ -119,8 +133,13 @@ Ingest *ingest_create()
 		return nullptr;
 	}
 
+    obs_data_t *settings = obs_data_create();
+    obs_data_set_string(settings, "source_name", source_name);
+
 	ingest->encoder = create_encoder(ingest->video);
-	ingest->output = obs_output_create(INGEST_OUTPUT_ID, "obs-replay-ingest-output", nullptr, nullptr);
+	ingest->output = obs_output_create(INGEST_OUTPUT_ID, "obs-replay-ingest-output", settings, nullptr);
+    obs_data_release(settings);
+
 	if (!ingest->encoder || !ingest->output) {
 		ingest_destroy(ingest);
 		return nullptr;
@@ -131,7 +150,7 @@ Ingest *ingest_create()
 		ingest_destroy(ingest);
 		return nullptr;
 	}
-	obs_replay_update_source(ingest->encoder);
+	obs_replay_update_source(ingest->encoder, std::string(source_name));
 
 	if (!obs_output_start(ingest->output)) {
 		ingest_destroy(ingest);

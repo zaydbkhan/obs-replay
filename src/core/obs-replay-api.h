@@ -25,10 +25,10 @@ void obs_replay_core_start_recording();
 void obs_replay_core_stop_recording();
 
 /** Updates the writers with the video info of a new or changed source. */
-void obs_replay_update_source(obs_encoder_t *encoder);
+void obs_replay_update_source(obs_encoder_t *encoder, std::string source_name);
 
 /** Submit an encoded packet to the writer. */
-void obs_replay_submit_encoded_packet(struct encoder_packet *obs_packet);
+void obs_replay_submit_encoded_packet(struct encoder_packet *obs_packet, const std::string& source_name);
 
 #ifdef __cplusplus
 }

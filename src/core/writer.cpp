@@ -159,6 +159,10 @@ void writer_destroy(Writer *writer)
 	delete writer;
 }
 
+void writer_reset(Writer* writer) {
+    close_current_segment(writer);
+}
+
 void writer_update_source(Writer *writer, const VideoInfo *info)
 {
 	close_current_segment(writer);

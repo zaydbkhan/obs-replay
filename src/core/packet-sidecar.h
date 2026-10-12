@@ -8,3 +8,4 @@
  * append to the sidecar atomically, otherwise there is a risk of something reading a partially
  * written or non-existent offset.
  */
+

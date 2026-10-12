@@ -1,5 +1,7 @@
 #pragma once
 
+
+
 // Ingest
 /**
  * Manages the OBS side of things for our writers, including calling the API when a
@@ -7,6 +9,7 @@
  */
 
 #ifdef __cplusplus
+#include <string>
 extern "C" {
 #endif
 
@@ -16,6 +19,11 @@ void ingest_register_output();
 
 struct Ingest *ingest_create();
 void ingest_destroy(struct Ingest *ingest);
+
+struct IngestOutputContext {
+	obs_output_t *output;
+	std::string source_name;
+};
 
 #ifdef __cplusplus
 }

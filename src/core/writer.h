@@ -35,6 +35,8 @@ struct Writer {
 
 Writer *writer_create(WriterType type, int ordinal, const std::filesystem::path &directory_path);
 void writer_destroy(Writer *writer);
+// resets all context when changing sources
+void writer_reset(Writer* writer);
 
 void writer_update_source(Writer *writer, const VideoInfo *info);
 

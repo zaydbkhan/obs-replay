@@ -18,7 +18,7 @@ with this program. If not, see <https://www.gnu.org/licenses/>
 
 #include <obs-module.h>
 #include <obs-frontend-api.h>
-#include <plugin-support.h>
+#include "plugin-support.h"
 
 #include "core/obs-replay-api.h"
 #include "obs/ingest.h"
@@ -39,7 +39,12 @@ static void frontend_event_callback(enum obs_frontend_event event, void *data)
 		bfree(recording_path);
 
 		ingest = ingest_create();
-		obs_replay_core_start_recording();
+		obs_leave_graphics();
+		if (ingest) {
+			obs_replay_core_start_recording();
+		} else {
+			obs_log(LOG_WARNING, "Ingest creation failed (no source). Recording aborted.");
+		}
 		break;
 	}
 	case OBS_FRONTEND_EVENT_EXIT:

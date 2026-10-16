@@ -2,9 +2,12 @@
 
 #include <filesystem>
 #include <unordered_map>
+#include <vector>
 #include <utility>
 #include <queue>
 #include <shared_mutex>
+
+#include "packet-sidecar.h"
 
 // Write Manager
 /**
@@ -30,6 +33,8 @@ struct WriteManager {
     std::unordered_map<std::string, Writer*> source_name_to_video_writers;
     std::unordered_map<std::string, Writer*> source_name_to_audio_writers;
     std::shared_mutex map_mutex;
+
+    PacketSidecar* ps;
 };
 
 WriteManager *write_manager_create(const std::filesystem::path &recording_path);

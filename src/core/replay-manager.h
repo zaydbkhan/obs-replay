@@ -2,8 +2,12 @@
 
 #include <unordered_map>
 #include <optional>
+#include <functional>
 #include "writer.h"
 #include "timeline.h"
+#include "replay-manager.h"
+#include "write-manager.h"
+
 
 
 // Replay Manager
@@ -14,10 +18,6 @@
 
 
 
- // for now, work on only a single replay
- struct ReplayManager {
-    std::unordered_map<std::string, Replay*> replays;
-};
 
 struct Replay {
     // the writer that wrote the source this replay comes from
@@ -29,12 +29,24 @@ struct Replay {
     bool is_recording;
 };
 
+// for now, work on only a single replay
+struct ReplayManager {
+	std::unordered_map<std::string, Replay *> replays;
+	std::function<void(const std::string &)> ui_notify_callback;
+};
+
 ReplayManager* replay_manager_create();
 void replay_manager_destroy(ReplayManager* rm);
+void replay_manager_set_ui_callback(ReplayManager* rm, std::function<void(const std::string&)> cb);
 // returns the id of the current replay
-std::optional<int> replay_manager_start_recording(ReplayManager *rm, WriteManager *wm, const std::string &source_name,
+std::optional<std::string> replay_manager_start_recording(ReplayManager *rm, WriteManager *wm, const std::string &source_name,
 						  Timeline *timeline);
+void replay_manager_stop_recording(ReplayManager *rm,
+							  const std::string &replay_id, Timeline *timeline);
 
-Replay *replay_start_recording(Writer * writer);
-void replay_stop_recording(Replay * replay);
+Replay* replay_manager_get_replay(ReplayManager* rm, const std::string& id);
+Replay *replay_start_recording(Writer * writer, uint64_t start_time);
+void replay_stop_recording(Replay * replay, uint64_t end_time);
 std::string replay_generate_unique_name(ReplayManager* rm, const std::string &source_name);
+
+

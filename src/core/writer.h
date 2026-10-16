@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 extern "C" {
 #include <libavformat/avformat.h>
@@ -17,6 +18,8 @@ extern "C" {
  * timeline API.
  */
 
+struct PacketSidecar;
+
 enum WriterType {
 	WRITER_VIDEO,
 	WRITER_AUDIO,
@@ -31,9 +34,10 @@ struct Writer {
 	Segment *current_segment;
 	AVFormatContext *fmt_ctx;
 	bool segment_has_packets;
+    PacketSidecar* ps;
 };
 
-Writer *writer_create(WriterType type, int ordinal, const std::filesystem::path &directory_path);
+Writer *writer_create(WriterType type, int ordinal, const std::filesystem::path &directory_path, PacketSidecar* ps);
 void writer_destroy(Writer *writer);
 // resets all context when changing sources
 void writer_reset(Writer* writer);

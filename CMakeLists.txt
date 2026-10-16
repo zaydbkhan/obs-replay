@@ -4,6 +4,8 @@ include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/bootstrap.cmake" NO_POLICY_SCO
 
 project(${_name} VERSION ${_version})
 
+set(CMAKE_AUTOMOC ON)
+
 option(ENABLE_FRONTEND_API "Use obs-frontend-api for UI functionality" OFF)
 option(ENABLE_QT "Use Qt functionality" OFF)
 option(ENABLE_TESTS "Build unit tests (GoogleTest via CTest)" OFF)
@@ -15,6 +17,8 @@ include(helpers)
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
 find_package(libobs REQUIRED)
+find_package(Qt6 COMPONENTS Core Widgets REQUIRED)
+
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE OBS::libobs)
 
 find_path(FFMPEG_INCLUDE_DIR libavformat/avformat.h REQUIRED)
@@ -25,6 +29,13 @@ add_library(FFmpeg::FFmpeg INTERFACE IMPORTED)
 target_include_directories(FFmpeg::FFmpeg INTERFACE ${FFMPEG_INCLUDE_DIR})
 target_link_libraries(FFmpeg::FFmpeg INTERFACE ${AVFORMAT_LIBRARY} ${AVCODEC_LIBRARY} ${AVUTIL_LIBRARY})
 target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE FFmpeg::FFmpeg)
+target_link_libraries(${CMAKE_PROJECT_NAME}
+    PRIVATE
+        OBS::libobs
+        OBS::obs-frontend-api
+        Qt6::Core
+        Qt6::Widgets
+)
 
 if(ENABLE_FRONTEND_API)
   find_package(obs-frontend-api REQUIRED)
@@ -47,7 +58,7 @@ endif()
 target_sources(
   ${CMAKE_PROJECT_NAME}
   PRIVATE
-    src/obs-replay.c
+    src/obs-replay.cpp
     src/core/obs-replay-api.cpp
     src/core/obs-mappings.cpp
     src/core/models.cpp

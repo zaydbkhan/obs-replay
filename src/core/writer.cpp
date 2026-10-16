@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "constants.h"
+#include "packet-sidecar.h"
 
 /**
  * Two types (Audio/Video). Live in their own lower priority threads with small internal queues to
@@ -108,6 +109,7 @@ static void close_segment_muxer(AVFormatContext *fmt_ctx)
 
 static void close_current_segment(Writer *writer)
 {
+    packet_sidecar_add_segment(writer->ps, writer);
 	close_segment_muxer(writer->fmt_ctx);
 	writer->fmt_ctx = nullptr;
 	segment_destroy(writer->current_segment);
@@ -142,7 +144,7 @@ static void write_packet(Writer *writer, const Packet *packet)
 	av_packet_free(&pkt);
 }
 
-Writer *writer_create(WriterType type, int ordinal, const std::filesystem::path &directory_path)
+Writer *writer_create(WriterType type, int ordinal, const std::filesystem::path &directory_path, PacketSidecar* ps)
 {
 	Writer *writer = new Writer{};
 	writer->type = type;
@@ -150,6 +152,7 @@ Writer *writer_create(WriterType type, int ordinal, const std::filesystem::path 
 	writer->directory_path = directory_path;
 	writer->base_file_name =
 		SEGMENT_FILE_NAME_BASE + std::to_string(ordinal) + "_" + writer_type_name(type) + "_";
+    writer->ps = ps;
 	return writer;
 }
 

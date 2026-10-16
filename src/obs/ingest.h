@@ -1,6 +1,7 @@
 #pragma once
 
-
+#include <obs.h>
+#include <string>
 
 // Ingest
 /**
@@ -8,23 +9,11 @@
  * source changes, passing through obs video data, etc.
  */
 
-#ifdef __cplusplus
-#include <string>
-extern "C" {
-#endif
 
 struct Ingest;
 
 void ingest_register_output();
 
-struct Ingest *ingest_create();
+struct Ingest *ingest_create(const std::string &target_source_name);
 void ingest_destroy(struct Ingest *ingest);
 
-struct IngestOutputContext {
-	obs_output_t *output;
-	std::string source_name;
-};
-
-#ifdef __cplusplus
-}
-#endif

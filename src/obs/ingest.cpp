@@ -4,6 +4,7 @@
 #include <string>
 
 #include "../core/obs-replay-api.h"
+#include <plugin-support.h>
 
 /**
  * Manages the OBS side of things for our writers, including calling the API when a
@@ -11,6 +12,11 @@
  */
 
 #define INGEST_OUTPUT_ID "obs_replay_ingest_output"
+
+struct IngestOutputContext {
+	obs_output_t *output;
+	std::string source_name;
+};
 
 struct Ingest {
 	obs_source_t *source;
@@ -37,20 +43,27 @@ static const char *ingest_output_get_name([[maybe_unused]] void *type_data)
 
 static void *ingest_output_create([[maybe_unused]] obs_data_t *settings, obs_output_t *output)
 {
-    auto *context = new IngestOutputContext();
-    context->output = output;
-    const char *name = obs_data_get_string(settings, "source_name");
-    if(name) {
-        context->source_name = name;
-    }
+	auto *context = new IngestOutputContext();
+	context->output = output;
+	const char *name = obs_data_get_string(settings, "source_name");
+	if (name) {
+		context->source_name = name;
+	}
 	return context;
 }
 
-static void ingest_output_destroy([[maybe_unused]] void *data) {}
+static void ingest_output_destroy([[maybe_unused]] void *data)
+{
+	auto *context = static_cast<IngestOutputContext *>(data);
+	delete context;
+}
 
 static bool ingest_output_start(void *data)
 {
-	auto *output = static_cast<obs_output_t *>(data);
+	auto *context = static_cast<IngestOutputContext *>(data);
+
+    obs_output_t *output = context->output;
+
 	if (!obs_output_can_begin_data_capture(output, 0))
 		return false;
 	if (!obs_output_initialize_encoders(output, 0))
@@ -60,15 +73,16 @@ static bool ingest_output_start(void *data)
 
 static void ingest_output_stop(void *data, [[maybe_unused]] uint64_t ts)
 {
-	obs_output_end_data_capture(static_cast<obs_output_t *>(data));
+	auto *context = static_cast<IngestOutputContext *>(data);
+	obs_output_end_data_capture(context->output);
 }
 
 static void ingest_output_encoded_packet([[maybe_unused]] void *data, encoder_packet *packet)
 {
-    auto *context = static_cast<IngestOutputContext *>(data);
-    if(!context || context->source_name.empty()) {
-        return;
-    }
+	auto *context = static_cast<IngestOutputContext *>(data);
+	if (!context || context->source_name.empty()) {
+		return;
+	}
 
 	obs_replay_submit_encoded_packet(packet, context->source_name);
 }
@@ -101,14 +115,16 @@ static obs_encoder_t *create_encoder(video_t *video)
 	return encoder;
 }
 
-Ingest *ingest_create()
+Ingest *ingest_create(const std::string &target_source_name)
 {
-	obs_source_t *source = nullptr;
-	obs_enum_sources(get_first_source_callback, &source);
-	if (!source)
+	obs_source_t *source = obs_get_source_by_name(target_source_name.c_str());
+	//obs_enum_sources(get_first_source_callback, &source);
+	if (!source) {
+		obs_log(LOG_WARNING, "Ingest could not find source: %s", target_source_name.c_str());
 		return nullptr;
+    }
 
-    const char* source_name = obs_source_get_name(source);
+	const char *source_name = obs_source_get_name(source);
 
 	auto *ingest = new Ingest{};
 	ingest->source = source;
@@ -133,12 +149,12 @@ Ingest *ingest_create()
 		return nullptr;
 	}
 
-    obs_data_t *settings = obs_data_create();
-    obs_data_set_string(settings, "source_name", source_name);
+	obs_data_t *settings = obs_data_create();
+	obs_data_set_string(settings, "source_name", source_name);
 
 	ingest->encoder = create_encoder(ingest->video);
 	ingest->output = obs_output_create(INGEST_OUTPUT_ID, "obs-replay-ingest-output", settings, nullptr);
-    obs_data_release(settings);
+	obs_data_release(settings);
 
 	if (!ingest->encoder || !ingest->output) {
 		ingest_destroy(ingest);
